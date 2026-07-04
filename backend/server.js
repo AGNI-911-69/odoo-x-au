@@ -5,8 +5,8 @@ import jwt       from 'jsonwebtoken';
 import db, { nextEmpCode } from './db.js';
 
 const app    = express();
-const PORT   = 3000;
-const SECRET = 'hrms-jwt-secret-2026';
+const PORT   = process.env.PORT || 3000;
+const SECRET = process.env.JWT_SECRET || 'hrms-jwt-secret-2026';
 
 const COLORS = ['#5B2D8E','#E74C3C','#F39C12','#27AE60','#2980B9','#8E44AD','#16A085','#D35400','#1A252F','#2C3E50'];
 

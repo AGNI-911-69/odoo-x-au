@@ -2,7 +2,7 @@
    HRMS API Client — JWT auth, real backend, zero hardcoded data
    ================================================================ */
 
-const BASE = 'http://localhost:3000/api';
+const BASE = window.HRMS_API_URL || 'http://localhost:3000/api';
 
 // ── Auth ──────────────────────────────────────────────────────
 export const Auth = {
