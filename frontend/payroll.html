@@ -14,17 +14,19 @@
     <div class="page-content">
 
       <div class="page-header">
-        <div class="page-header-left">
+        <div>
           <h1>Payroll</h1>
-          <p>View and manage employee salary records.</p>
+          <p id="paySubtitle">View and manage employee salary records.</p>
         </div>
         <div class="page-header-actions" id="hrActions"></div>
       </div>
 
+      <!-- Summary KPIs -->
       <div class="payroll-summary" id="payrollSummary"></div>
 
-      <div class="card">
-        <div class="panel-header">
+      <!-- Table -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between">
           <div class="panel-title" id="tableTitle">Payroll Records</div>
           <div style="display:flex;gap:10px">
             <input type="month" id="monthFilter" class="form-control" style="max-width:170px" onchange="loadPayroll()"/>
@@ -36,7 +38,7 @@
             </select>
           </div>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap" style="margin-top:16px">
           <table>
             <thead id="tableHead"></thead>
             <tbody id="payTable"><tr><td colspan="9" class="loading-row">Loading…</td></tr></tbody>
@@ -48,150 +50,154 @@
   </div>
 </div>
 
-<!-- Add Payroll Modal (HR only) -->
+<!-- Add Payroll Modal -->
 <div class="modal-overlay" id="addModal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Add Payroll Record</div>
-      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+      <button class="modal-close" onclick="closeModal('addModal')">×</button>
     </div>
     <div class="form-group"><label>Employee *</label><select id="pEmp" class="form-select"></select></div>
     <div class="form-group"><label>Month *</label><input type="month" id="pMonth" class="form-control"/></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px">
       <div class="form-group"><label>Basic Salary *</label><input id="pBasic" class="form-control" type="number" min="0" placeholder="0"/></div>
       <div class="form-group"><label>HRA</label><input id="pHra" class="form-control" type="number" min="0" placeholder="0"/></div>
-      <div class="form-group"><label>Transport</label><input id="pTransport" class="form-control" type="number" min="0" placeholder="0"/></div>
-      <div class="form-group"><label>Medical</label><input id="pMedical" class="form-control" type="number" min="0" placeholder="0"/></div>
-      <div class="form-group"><label>Other</label><input id="pOther" class="form-control" type="number" min="0" placeholder="0"/></div>
+      <div class="form-group"><label>Transport Allowance</label><input id="pTransport" class="form-control" type="number" min="0" placeholder="0"/></div>
+      <div class="form-group"><label>Medical Allowance</label><input id="pMedical" class="form-control" type="number" min="0" placeholder="0"/></div>
+      <div class="form-group"><label>Other Allowances</label><input id="pOther" class="form-control" type="number" min="0" placeholder="0"/></div>
       <div class="form-group"><label>Tax Deduction</label><input id="pTax" class="form-control" type="number" min="0" placeholder="0"/></div>
       <div class="form-group"><label>Provident Fund</label><input id="pPf" class="form-control" type="number" min="0" placeholder="0"/></div>
     </div>
-    <div id="payErr" style="color:var(--danger);font-size:13px;margin-bottom:8px;display:none"></div>
+    <div id="payErr" class="form-err"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('addModal')">Cancel</button>
       <button class="btn btn-primary" id="savePayBtn" onclick="savePayroll()">Save Record</button>
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 <script type="module">
-import { Auth, get, post, badge, toast, renderSidebar, renderTopbar } from './api.js';
+import { Auth, get, post, badge, toast, icons, renderSidebar, renderTopbar } from './api.js';
 
 Auth.requireLogin();
 document.getElementById('sidebar').innerHTML = renderSidebar('payroll');
 document.getElementById('topbar').innerHTML  = renderTopbar();
 
 const isHR = Auth.isHR();
-if (!isHR) document.getElementById('tableTitle').textContent = 'My Payroll Records';
+const now  = new Date();
+const defMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+document.getElementById('monthFilter').value = defMonth;
 
-// Set default month filter to current month
-const now = new Date();
-document.getElementById('monthFilter').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-
-// HR-only setup
+if (!isHR) {
+  document.getElementById('tableTitle').textContent = 'My Payroll Records';
+  document.getElementById('paySubtitle').textContent = 'View your personal salary and payment details.';
+}
 if (isHR) {
-  document.getElementById('hrActions').innerHTML = '<button class="btn btn-primary" onclick="openAddModal()">+ Add Payroll</button>';
-  // Populate employee dropdown
+  document.getElementById('hrActions').innerHTML =
+    `<button class="btn btn-primary" onclick="openAddModal()">${icons.plus} Add Payroll</button>`;
   get('/employees').then(emps => {
-    document.getElementById('pEmp').innerHTML = emps.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+    document.getElementById('pEmp').innerHTML =
+      emps.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
   });
-  // Default month for form
-  const cy = now.getFullYear(), cm = String(now.getMonth()+1).padStart(2,'0');
-  document.getElementById('pMonth').value = `${cy}-${cm}`;
+  document.getElementById('pMonth').value = defMonth;
 }
 
-function formatMonth(val) {
+function fmtMonth(val) {
   if (!val) return '';
-  const [y, m] = val.split('-');
-  return ['January','February','March','April','May','June','July','August','September','October','November','December'][parseInt(m)-1] + ' ' + y;
+  const [y,m] = val.split('-');
+  return ['January','February','March','April','May','June','July','August','September','October','November','December'][parseInt(m)-1]+' '+y;
 }
 
 window.loadPayroll = async function() {
   try {
     const mVal  = document.getElementById('monthFilter').value;
     const state = document.getElementById('stateFilter').value;
-    const month = formatMonth(mVal);
-    let url = '/payroll' + (month ? '?month=' + encodeURIComponent(month) : '');
-    const data = await get(url);
-    const filtered = state ? data.filter(p => p.state === state) : data;
+    const month = fmtMonth(mVal);
+    const data  = await get('/payroll'+(month?'?month='+encodeURIComponent(month):''));
+    const filt  = state ? data.filter(p=>p.state===state) : data;
 
     // Summary
-    const totalGross  = filtered.reduce((s,p) => s + (p.basic+p.hra+p.transport+p.medical+(p.other||0)), 0);
-    const totalDeduct = filtered.reduce((s,p) => s + (p.tax+p.pf), 0);
-    const totalNet    = totalGross - totalDeduct;
+    const gTotal = filt.reduce((s,p)=>s+(p.basic+(p.hra||0)+(p.transport||0)+(p.medical||0)+(p.other||0)),0);
+    const dTotal = filt.reduce((s,p)=>s+((p.tax||0)+(p.pf||0)),0);
+    const nTotal = gTotal - dTotal;
     document.getElementById('payrollSummary').innerHTML = `
-      <div class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-label">Total Gross</div><div class="kpi-value" style="font-size:26px">$${totalGross.toLocaleString()}</div></div>
-      <div class="kpi-card"><div class="kpi-icon">📉</div><div class="kpi-label">Total Deductions</div><div class="kpi-value" style="font-size:26px;color:var(--danger)">$${totalDeduct.toLocaleString()}</div></div>
-      <div class="kpi-card kpi-purple"><div class="kpi-icon">✅</div><div class="kpi-label">Net Pay</div><div class="kpi-value" style="font-size:26px">$${totalNet.toLocaleString()}</div><div class="kpi-sub">${filtered.filter(p=>p.state==='paid').length} paid</div></div>`;
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap green">${icons.money}</div>
+        <div class="kpi-label">Total Gross</div>
+        <div class="kpi-value" style="font-size:26px">$${gTotal.toLocaleString()}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap red">${icons.trending}</div>
+        <div class="kpi-label">Total Deductions</div>
+        <div class="kpi-value" style="font-size:26px;color:var(--danger)">$${dTotal.toLocaleString()}</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-icon-wrap purple">${icons.check}</div>
+        <div class="kpi-label">Net Pay</div>
+        <div class="kpi-value" style="font-size:26px">$${nTotal.toLocaleString()}</div>
+        <div class="kpi-sub">${filt.filter(p=>p.state==='paid').length} records paid</div>
+      </div>`;
 
     document.getElementById('tableHead').innerHTML = `<tr>
-      ${isHR ? '<th>Employee</th>' : ''}<th>Month</th><th>Basic</th>
+      ${isHR?'<th>Employee</th>':''}<th>Month</th><th>Basic</th>
       <th>Allowances</th><th>Gross</th><th>Deductions</th>
-      <th>Net Salary</th><th>Status</th>${isHR ? '<th>Action</th>' : ''}</tr>`;
+      <th>Net Salary</th><th>Status</th>${isHR?'<th>Action</th>':''}</tr>`;
 
-    document.getElementById('payTable').innerHTML = filtered.length
-      ? filtered.map(p => {
-          const allow = (p.hra||0)+(p.transport||0)+(p.medical||0)+(p.other||0);
-          const gross = p.basic + allow;
-          const net   = gross - (p.tax||0) - (p.pf||0);
+    document.getElementById('payTable').innerHTML = filt.length
+      ? filt.map(p=>{
+          const allow=(p.hra||0)+(p.transport||0)+(p.medical||0)+(p.other||0);
+          const gross=p.basic+allow;
+          const net=gross-(p.tax||0)-(p.pf||0);
           return `<tr>
-            ${isHR ? `<td><strong>${p.emp_name}</strong></td>` : ''}
+            ${isHR?`<td><strong>${p.emp_name}</strong></td>`:''}
             <td>${p.month}</td>
             <td>$${p.basic.toLocaleString()}</td>
             <td>$${allow.toLocaleString()}</td>
             <td style="font-weight:700">$${gross.toLocaleString()}</td>
             <td style="color:var(--danger)">$${((p.tax||0)+(p.pf||0)).toLocaleString()}</td>
-            <td style="font-weight:800;color:var(--primary);font-size:16px">$${net.toLocaleString()}</td>
+            <td style="font-weight:800;color:var(--primary);font-size:15px">$${net.toLocaleString()}</td>
             <td>${badge(p.state)}</td>
-            ${isHR ? `<td>
-              ${p.state==='draft'     ? `<button class="btn btn-sm btn-outline" onclick="confirmPay(${p.id})">Confirm</button>` : ''}
-              ${p.state==='confirmed' ? `<button class="btn btn-sm btn-success" onclick="markPaid(${p.id})">Mark Paid</button>` : ''}
-              ${p.state==='paid'      ? '<span style="color:var(--success);font-size:13px">Paid ✓</span>' : ''}
-            </td>` : ''}
+            ${isHR?`<td>
+              ${p.state==='draft'?`<button class="btn btn-sm btn-outline" onclick="confirmPay(${p.id})">Confirm</button>`:''}
+              ${p.state==='confirmed'?`<button class="btn btn-sm btn-success" onclick="markPaid(${p.id})">Mark Paid</button>`:''}
+              ${p.state==='paid'?`<span style="color:var(--success);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px">${icons.check} Paid</span>`:''}
+            </td>`:''}
           </tr>`;
         }).join('')
       : `<tr><td colspan="9" class="loading-row">No payroll records found.</td></tr>`;
-  } catch(e) { toast(e.message, 'danger'); }
+  } catch(e) { toast(e.message,'danger'); }
 };
 
-window.confirmPay = async (id) => {
-  try { await post(`/payroll/${id}/confirm`); toast('Payroll confirmed ✓'); loadPayroll(); }
-  catch(e) { toast(e.message, 'danger'); }
-};
-window.markPaid = async (id) => {
-  try { await post(`/payroll/${id}/markpaid`); toast('Marked as paid ✓'); loadPayroll(); }
-  catch(e) { toast(e.message, 'danger'); }
-};
+window.confirmPay = async id=>{try{await post(`/payroll/${id}/confirm`);toast('Payroll confirmed');loadPayroll();}catch(e){toast(e.message,'danger');}};
+window.markPaid   = async id=>{try{await post(`/payroll/${id}/markpaid`);toast('Marked as paid');loadPayroll();}catch(e){toast(e.message,'danger');}};
 
-window.openAddModal = () => openModal('addModal');
-window.openModal  = id => document.getElementById(id).classList.add('open');
-window.closeModal = id => document.getElementById(id).classList.remove('open');
+window.openAddModal=()=>openModal('addModal');
+window.openModal =id=>document.getElementById(id).classList.add('open');
+window.closeModal=id=>document.getElementById(id).classList.remove('open');
 
 window.savePayroll = async () => {
-  const btn = document.getElementById('savePayBtn');
-  const err = document.getElementById('payErr');
-  err.style.display = 'none';
-  const empId = document.getElementById('pEmp').value;
-  const mVal  = document.getElementById('pMonth').value;
-  const basic = parseFloat(document.getElementById('pBasic').value);
-  if (!empId || !mVal || !basic) { err.textContent='Employee, month and basic salary required'; err.style.display='block'; return; }
-  btn.disabled=true; btn.textContent='Saving…';
+  const btn=document.getElementById('savePayBtn'),err=document.getElementById('payErr');
+  err.style.display='none';
+  const basic=parseFloat(document.getElementById('pBasic').value);
+  if(!document.getElementById('pEmp').value||!document.getElementById('pMonth').value||!basic){
+    err.textContent='Employee, month and basic salary are required';err.style.display='block';return;
+  }
+  btn.disabled=true;btn.textContent='Saving…';
   try {
-    await post('/payroll', {
-      emp_id: parseInt(empId), month: formatMonth(mVal),
-      basic, hra: parseFloat(document.getElementById('pHra').value)||0,
+    await post('/payroll',{
+      emp_id: parseInt(document.getElementById('pEmp').value),
+      month:  fmtMonth(document.getElementById('pMonth').value),
+      basic,
+      hra:       parseFloat(document.getElementById('pHra').value)||0,
       transport: parseFloat(document.getElementById('pTransport').value)||0,
       medical:   parseFloat(document.getElementById('pMedical').value)||0,
       other:     parseFloat(document.getElementById('pOther').value)||0,
       tax:       parseFloat(document.getElementById('pTax').value)||0,
       pf:        parseFloat(document.getElementById('pPf').value)||0,
     });
-    closeModal('addModal');
-    toast('Payroll record added ✓');
-    loadPayroll();
-  } catch(ex) { err.textContent=ex.message; err.style.display='block'; }
-  finally { btn.disabled=false; btn.textContent='Save Record'; }
+    closeModal('addModal');toast('Payroll record added');loadPayroll();
+  } catch(ex){err.textContent=ex.message;err.style.display='block';}
+  finally{btn.disabled=false;btn.textContent='Save Record';}
 };
 
 loadPayroll();

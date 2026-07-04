@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Attendance — Enterprise HRMS</title>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    .att-notice{background:var(--primary);color:#fff;border-radius:var(--radius);padding:24px}
+    .att-notice-title{font-size:17px;font-weight:700;margin-bottom:14px}
+    .notice-block{background:rgba(255,255,255,.12);border-radius:10px;padding:14px;margin-bottom:10px}
+    .notice-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-bottom:5px}
+    .notice-text{font-size:13px;line-height:1.5}
+    .bar-chart-wrap{display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:10px}
+    .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .bar-fill{width:100%;border-radius:6px 6px 0 0;transition:height .5s cubic-bezier(.4,0,.2,1)}
+    .bar-label{font-size:11.5px;color:var(--text-sm);margin-top:6px}
+    .insight-pct{color:var(--success);font-weight:700}
+    .action-menu{position:relative;display:inline-block}
+    .action-dot{background:none;border:none;cursor:pointer;padding:4px 8px;color:var(--text-sm);font-size:18px;border-radius:4px;transition:var(--transition)}
+    .action-dot:hover{background:var(--primary-lt);color:var(--primary)}
+  </style>
 </head>
 <body>
 <div class="app-shell">
@@ -14,23 +29,27 @@
     <div class="page-content">
 
       <div class="page-header">
-        <div class="page-header-left">
+        <div>
           <h1>Attendance Management</h1>
           <p>Track, monitor, and manage organizational attendance records.</p>
         </div>
         <div class="page-header-actions">
-          <button class="btn btn-primary" id="checkInBtn">→ Check In</button>
-          <button class="btn btn-outline" id="checkOutBtn">← Check Out</button>
-          <button class="btn btn-outline" onclick="exportCSV()">↓ Export CSV</button>
+          <button class="btn btn-primary" id="checkInBtn">${'→'} Check In</button>
+          <button class="btn btn-outline" onclick="exportCSV()">${'↓'} Export CSV</button>
         </div>
       </div>
 
+      <!-- KPI Cards -->
       <div class="kpi-grid" id="kpiGrid"></div>
 
-      <div class="card" style="margin-bottom:20px">
-        <div class="toolbar" style="margin-bottom:0">
-          <input type="date" class="form-control" id="dateFilter" style="max-width:180px" onchange="loadTable()"/>
-          <select class="form-select" id="deptFilter" style="max-width:200px" onchange="loadTable()">
+      <!-- Filter Bar -->
+      <div class="card" style="margin-bottom:18px;padding:16px 20px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;cursor:pointer" onclick="document.getElementById('dateFilter').showPicker?.()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <input type="date" id="dateFilter" class="form-control" style="border:none;padding:0;width:130px;font-weight:600;outline:none;cursor:pointer" onchange="loadTable()"/>
+          </div>
+          <select class="form-select" id="deptFilter" style="max-width:180px" onchange="loadTable()">
             <option value="">All Departments</option>
           </select>
           <div style="flex:1"></div>
@@ -41,13 +60,18 @@
         </div>
       </div>
 
-      <div class="card">
+      <!-- Attendance Table -->
+      <div class="card" style="padding:0;overflow:hidden">
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Employee</th><th>Check-In</th><th>Check-Out</th>
-                <th>Work Hours</th><th>Status</th><th>Action</th>
+                <th>Employee</th>
+                <th>Check-In</th>
+                <th>Check-Out</th>
+                <th>Work Hours</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="attTable">
@@ -57,29 +81,31 @@
         </div>
       </div>
 
-      <!-- Attendance Insights -->
+      <!-- Insights + Admin Notice -->
       <div class="dash-grid" style="margin-top:20px">
         <div class="card">
-          <div class="panel-header">
+          <div class="panel-header" style="margin-bottom:10px">
             <div>
               <div class="panel-title">Attendance Insights</div>
-              <div class="panel-sub" id="insightSub">This week's attendance overview.</div>
+              <div class="panel-sub">Average punctuality has increased by <span class="insight-pct" id="insightPct">—</span> this week.</div>
             </div>
           </div>
-          <div id="barChart" style="display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:10px"></div>
-          <div style="display:flex;gap:10px;margin-top:8px" id="barLabels"></div>
+          <div class="bar-chart-wrap" id="barChart"></div>
+          <div style="display:flex;gap:10px;margin-top:0" id="barLabels"></div>
         </div>
-        <div class="card" style="background:var(--primary);color:#fff">
-          <div style="font-size:17px;font-weight:700;margin-bottom:12px">📢 Admin Notice</div>
-          <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:14px;margin-bottom:10px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-bottom:6px">Reminder</div>
-            <div style="font-size:13px">Ensure all attendance records are updated by end of day.</div>
+        <div class="att-notice">
+          <div class="att-notice-title">Admin Notice</div>
+          <div class="notice-block">
+            <div class="notice-tag">Coming Up</div>
+            <div class="notice-text">Review upcoming leave requests and ensure attendance records are finalized before month end.</div>
           </div>
-          <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:14px;margin-bottom:14px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-bottom:6px">Policy</div>
-            <div style="font-size:13px">Core work hours: 10:00 AM – 4:00 PM for all flexible roles.</div>
+          <div class="notice-block">
+            <div class="notice-tag">Policy Update</div>
+            <div class="notice-text">Core work hours are 10:00 AM – 4:00 PM for all flexible roles. Late arrivals must be logged.</div>
           </div>
-          <button class="btn" style="background:#fff;color:var(--primary);width:100%;font-weight:700" onclick="window.location.href='leave.html'">View Leave Requests</button>
+          <button class="btn" style="background:#fff;color:var(--primary);width:100%;justify-content:center;font-weight:700;margin-top:4px" onclick="window.location.href='leave.html'">
+            View Leave Requests
+          </button>
         </div>
       </div>
 
@@ -88,7 +114,7 @@
 </div>
 <div class="toast" id="toast"></div>
 <script type="module">
-import { Auth, get, post, badge, avatar, formatHours, toast, renderSidebar, renderTopbar } from './api.js';
+import { Auth, get, post, badge, avatar, formatHours, initials, toast, icons, renderSidebar, renderTopbar } from './api.js';
 
 Auth.requireLogin();
 document.getElementById('sidebar').innerHTML = renderSidebar('attendance');
@@ -96,55 +122,66 @@ document.getElementById('topbar').innerHTML  = renderTopbar();
 
 const isHR = Auth.isHR();
 const user = Auth.user();
-const today = new Date().toISOString().slice(0, 10);
+const today = new Date().toISOString().slice(0,10);
 document.getElementById('dateFilter').value = today;
 
-// Populate dept filter from employees
+// Dept filter
 async function loadDepts() {
   if (!isHR) return;
   try {
     const emps = await get('/employees');
-    const depts = [...new Set(emps.map(e => e.dept).filter(Boolean))].sort();
+    const depts = [...new Set(emps.map(e=>e.dept).filter(Boolean))].sort();
     const sel = document.getElementById('deptFilter');
-    depts.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
-  } catch(e) {}
+    depts.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+  } catch(e){}
 }
 
 async function loadKPIs() {
   try {
     const s = await get('/stats');
     document.getElementById('kpiGrid').innerHTML = `
-      <div class="kpi-card"><div class="kpi-icon">✅</div><div class="kpi-label">Present Today</div><div class="kpi-value">${s.present + s.halfday}</div><div class="kpi-sub">/ ${s.totalEmp}</div></div>
-      <div class="kpi-card"><div class="kpi-icon">❌</div><div class="kpi-label">Absent</div><div class="kpi-value">${s.absent}</div></div>
-      <div class="kpi-card"><div class="kpi-icon">🏖️</div><div class="kpi-label">On Leave</div><div class="kpi-value">${s.onLeave}</div></div>
-      <div class="kpi-card"><div class="kpi-icon">⏰</div><div class="kpi-label">Late Arrivals</div><div class="kpi-value">${s.lateArrivals}</div></div>`;
-  } catch(e) {}
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap green">${icons.employees}</div>
+        <div class="kpi-label">Present Today</div>
+        <div class="kpi-value">${s.present + s.halfday} <span style="font-size:18px;font-weight:500;color:var(--text-sm)">/ ${s.totalEmp}</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap red">${icons.x}</div>
+        <div class="kpi-label">Absent</div>
+        <div class="kpi-value">${s.absent}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap yellow">${icons.clock}</div>
+        <div class="kpi-label">On Leave</div>
+        <div class="kpi-value">${s.onLeave}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap blue">${icons.clock}</div>
+        <div class="kpi-label">Late Arrivals</div>
+        <div class="kpi-value">${s.lateArrivals}</div>
+      </div>`;
+  } catch(e){}
 }
 
 window.loadTable = async function() {
   const date = document.getElementById('dateFilter').value;
   const dept = document.getElementById('deptFilter').value;
-  document.getElementById('attTable').innerHTML = '<tr><td colspan="6" class="loading-row">Loading…</td></tr>';
+  document.getElementById('attTable').innerHTML = `<tr><td colspan="6" class="loading-row">Loading…</td></tr>`;
   try {
-    const params = new URLSearchParams({ date });
-    if (!isHR) params.set('emp_id', user.id);
-    const rows = await get('/attendance?' + params);
-
-    // For HR: also get all employees to show absent ones
-    let emps = [];
-    if (isHR) emps = await get('/employees');
-
+    const attRows = await get('/attendance?date=' + date);
+    let rows = '';
     if (isHR) {
-      const filtered = dept ? emps.filter(e => e.dept === dept) : emps;
-      document.getElementById('attTable').innerHTML = filtered.map(e => {
-        const rec = rows.find(r => r.emp_id === e.id);
+      const emps = await get('/employees');
+      const filtered = dept ? emps.filter(e=>e.dept===dept) : emps;
+      rows = filtered.map(e => {
+        const rec = attRows.find(r => r.emp_id === e.id);
         return buildRow(e, rec);
-      }).join('') || '<tr><td colspan="6" class="loading-row">No records.</td></tr>';
+      }).join('');
     } else {
-      document.getElementById('attTable').innerHTML = rows.length
-        ? rows.map(r => buildRow({ id:r.emp_id, name:r.emp_name, job:r.emp_job, color:r.emp_color }, r)).join('')
-        : '<tr><td colspan="6" class="loading-row">No attendance records for this date.</td></tr>';
+      rows = attRows.map(r => buildRow({ id:r.emp_id, name:r.emp_name, job:r.emp_job, color:r.emp_color }, r)).join('');
     }
+    document.getElementById('attTable').innerHTML = rows ||
+      `<tr><td colspan="6" class="loading-row">No records for this date.</td></tr>`;
   } catch(e) { toast(e.message, 'danger'); }
 };
 
@@ -157,89 +194,91 @@ function buildRow(emp, rec) {
   const canOut = rec?.check_in && !rec?.check_out;
   return `<tr>
     <td><div class="emp-cell">
-      ${avatar(emp.name, emp.color)}
-      <div><div class="emp-name">${emp.name}</div><div class="emp-role">${emp.job||''}</div></div>
+      ${avatar(emp.name, emp.color, 40)}
+      <div><div class="emp-name">${emp.name}</div><div class="emp-sub">${emp.job||''}</div></div>
     </div></td>
     <td style="font-weight:600">${ci}</td>
     <td style="font-weight:600">${co}</td>
     <td style="font-weight:700">${hrs}</td>
     <td>${badge(st)}</td>
     <td>
-      ${canIn  ? `<button class="btn btn-sm btn-primary"  onclick="doCheckIn(${emp.id})">Check In</button>` : ''}
-      ${canOut ? `<button class="btn btn-sm btn-outline" onclick="doCheckOut(${emp.id})">Check Out</button>` : ''}
-      ${!canIn && !canOut ? '<span style="color:var(--text-sm);font-size:12px">Done</span>' : ''}
+      ${canIn  ? `<button class="btn btn-sm btn-primary" onclick="doCheckIn(${emp.id})">Check In</button>` : ''}
+      ${canOut ? `<button class="btn btn-sm btn-outline" style="border-color:var(--warning);color:var(--warning)" onclick="doCheckOut(${emp.id})">Check Out</button>` : ''}
+      ${!canIn && !canOut ? `<span style="color:var(--success);font-size:12px;font-weight:600">${icons.check} Done</span>` : ''}
     </td>
   </tr>`;
 }
 
 window.doCheckIn = async (empId) => {
   try {
-    const body = isHR ? { emp_id: empId } : {};
-    const r = await post('/attendance/checkin', body);
-    toast(`Checked in at ${r.check_in} ✓`);
+    const b = isHR ? { emp_id: empId } : {};
+    const r = await post('/attendance/checkin', b);
+    toast(`Checked in at ${r.check_in}`);
     loadTable(); loadKPIs();
   } catch(e) { toast(e.message, 'danger'); }
 };
-
 window.doCheckOut = async (empId) => {
   try {
-    const body = isHR ? { emp_id: empId } : {};
-    const r = await post('/attendance/checkout', body);
-    toast(`Checked out at ${r.check_out} ✓`);
+    const b = isHR ? { emp_id: empId } : {};
+    const r = await post('/attendance/checkout', b);
+    toast(`Checked out at ${r.check_out}`);
     loadTable(); loadKPIs();
   } catch(e) { toast(e.message, 'danger'); }
 };
 
-// Top Check In/Out buttons for current user
-document.getElementById('checkInBtn').onclick  = () => doCheckIn(user.id);
-document.getElementById('checkOutBtn').onclick = () => doCheckOut(user.id);
+document.getElementById('checkInBtn').onclick = () => window.doCheckIn(user.id);
 
 window.setView = (v) => {
   document.getElementById('btnDaily').classList.toggle('active', v==='daily');
   document.getElementById('btnWeekly').classList.toggle('active', v==='weekly');
-  toast(v === 'weekly' ? 'Weekly view — filter by date range' : 'Daily view');
+  loadTable();
 };
 
 window.exportCSV = async () => {
   try {
     const date = document.getElementById('dateFilter').value;
-    const rows = await get('/attendance?date=' + date);
+    const rows = await get('/attendance?date='+date);
     const csv  = ['Employee,Date,Check-In,Check-Out,Hours,Status',
-      ...rows.map(r => `${r.emp_name},${r.date},${r.check_in||''},${r.check_out||''},${r.hours||0},${r.status}`)
+      ...rows.map(r=>`${r.emp_name},${r.date},${r.check_in||''},${r.check_out||''},${(r.hours||0).toFixed(2)},${r.status}`)
     ].join('\n');
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})), download: `attendance-${date}.csv` });
-    a.click();
-    toast('CSV exported ✓');
-  } catch(e) { toast(e.message, 'danger'); }
+    const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:`attendance-${date}.csv`});
+    a.click(); toast('CSV exported');
+  } catch(e){ toast(e.message,'danger'); }
 };
 
 // Weekly bar chart from real data
-async function loadWeeklyChart() {
+async function loadChart() {
   try {
-    const days = ['Mon','Tue','Wed','Thu','Fri'];
-    const counts = [];
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sun
+    const dow = now.getDay();
+    const labels = ['Mon','Tue','Wed','Thu','Fri'];
+    const counts = [];
     for (let i = 1; i <= 5; i++) {
       const d = new Date(now);
-      d.setDate(now.getDate() - dayOfWeek + i);
+      d.setDate(now.getDate() - dow + i);
       const ds = d.toISOString().slice(0,10);
-      const att = await get('/attendance?date=' + ds);
-      counts.push(att.filter(a => a.status === 'present' || a.status === 'half_day').length);
+      const att = await get('/attendance?date='+ds);
+      counts.push(att.filter(a=>a.status==='present'||a.status==='half_day').length);
     }
     const maxC = Math.max(...counts, 1);
-    document.getElementById('barChart').innerHTML = counts.map((v, i) => `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center">
-        <div style="width:100%;background:${i===dayOfWeek-1?'var(--primary)':'#d8c8ee'};border-radius:6px 6px 0 0;height:${Math.max((v/maxC)*100,4)}px;transition:height .4s"></div>
+    const todayDow = now.getDay(); // 1=Mon in our array
+    document.getElementById('barChart').innerHTML = counts.map((v,i)=>
+      `<div class="bar-col">
+        <div class="bar-fill" style="height:${Math.max((v/maxC)*100,4)}px;background:${i===(todayDow-1)?'var(--primary)':'#d8c8ee'}"></div>
       </div>`).join('');
-    document.getElementById('barLabels').innerHTML = days.map(d => `<span style="font-size:12px;color:var(--text-sm);flex:1;text-align:center">${d}</span>`).join('');
-  } catch(e) {}
+    document.getElementById('barLabels').innerHTML = labels.map(l=>
+      `<span style="flex:1;text-align:center;font-size:11.5px;color:var(--text-sm)">${l}</span>`).join('');
+    // Compute insight %
+    const prev = counts.slice(0, Math.max(dow-1,1));
+    const curr = counts.slice(0, dow);
+    const prevAvg = prev.reduce((a,b)=>a+b,0)/Math.max(prev.length,1);
+    const currAvg = curr.reduce((a,b)=>a+b,0)/Math.max(curr.length,1);
+    const pct = prevAvg > 0 ? ((currAvg-prevAvg)/prevAvg*100).toFixed(1) : '0.0';
+    document.getElementById('insightPct').textContent = `${pct > 0 ? '+' : ''}${pct}%`;
+  } catch(e){}
 }
 
-loadDepts();
-loadKPIs();
-loadTable();
-loadWeeklyChart();
+loadDepts(); loadKPIs(); loadTable(); loadChart();
 </script>
 </body>
 </html>

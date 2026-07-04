@@ -14,32 +14,41 @@
     <div class="page-content">
 
       <div class="page-header">
-        <div class="page-header-left">
-          <h1 id="welcomeMsg">Dashboard Overview</h1>
+        <div>
+          <h1>Dashboard Overview</h1>
           <p id="welcomeSub">Loading…</p>
         </div>
       </div>
 
+      <!-- KPI Cards -->
       <div class="kpi-grid" id="kpiGrid">
-        <div class="kpi-card skeleton" style="height:110px"></div>
-        <div class="kpi-card skeleton" style="height:110px"></div>
-        <div class="kpi-card skeleton" style="height:110px"></div>
-        <div class="kpi-card skeleton" style="height:110px"></div>
+        <div class="kpi-card skeleton" style="height:130px"></div>
+        <div class="kpi-card skeleton" style="height:130px"></div>
+        <div class="kpi-card skeleton" style="height:130px"></div>
+        <div class="kpi-card skeleton" style="height:130px"></div>
       </div>
 
+      <!-- Two-column: pending leaves + activity -->
       <div class="dash-grid">
+
+        <!-- Pending Leave Approvals -->
         <div class="card">
           <div class="panel-header">
             <div>
               <div class="panel-title">Pending Leave Approvals</div>
               <div class="panel-sub">Review and manage recent time-off requests.</div>
             </div>
-            <a href="leave.html" class="panel-link">View All Requests →</a>
+            <a href="leave.html" class="panel-link">View All Requests</a>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Employee</th><th>Type</th><th>Dates</th><th>Actions</th></tr>
+                <tr>
+                  <th>Employee</th>
+                  <th>Type</th>
+                  <th>Dates</th>
+                  <th>Actions</th>
+                </tr>
               </thead>
               <tbody id="leaveTable">
                 <tr><td colspan="4" class="loading-row">Loading…</td></tr>
@@ -48,6 +57,7 @@
           </div>
         </div>
 
+        <!-- Recent Activity -->
         <div class="card">
           <div class="panel-header">
             <div class="panel-title">Recent Activity</div>
@@ -55,18 +65,20 @@
           <div class="activity-list" id="activityList">
             <div class="loading-row">Loading…</div>
           </div>
-          <div style="margin-top:16px">
-            <button class="btn btn-outline" style="width:100%" onclick="window.location.href='leave.html'">View Full Audit Log</button>
+          <div style="margin-top:20px">
+            <button class="btn btn-outline" style="width:100%;justify-content:center" onclick="window.location.href='leave.html'">
+              View Full Audit Log
+            </button>
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 <script type="module">
-import { Auth, get, post, badge, avatar, initials, toast, timeAgo, renderSidebar, renderTopbar } from './api.js';
+import { Auth, get, post, badge, avatar, timeAgo, toast, icons, renderSidebar, renderTopbar } from './api.js';
 
 Auth.requireLogin();
 if (!Auth.isHR()) window.location.href = 'employees.html';
@@ -75,53 +87,59 @@ document.getElementById('sidebar').innerHTML = renderSidebar('dashboard');
 document.getElementById('topbar').innerHTML  = renderTopbar();
 
 const user = Auth.user();
-document.getElementById('welcomeMsg').textContent = 'Dashboard Overview';
-document.getElementById('welcomeSub').textContent = `Welcome back, ${user.name.split(' ')[0]}. Here is what's happening today.`;
+document.getElementById('welcomeSub').textContent =
+  `Welcome back, ${user.name.split(' ')[0]}. Here is what's happening today in the organization.`;
+
+const ACT_ICONS = { employee:'employees', payroll:'money', system:'settings', leave:'leave' };
+const ACT_CLS   = { employee:'purple',    payroll:'green',  system:'gray',    leave:'blue' };
 
 async function loadStats() {
   try {
     const s = await get('/stats');
     document.getElementById('kpiGrid').innerHTML = `
       <div class="kpi-card">
-        <div class="kpi-icon">👥</div>
+        <div class="kpi-icon-wrap green">${icons.employees}</div>
         <div class="kpi-label">Total Employees</div>
-        <div class="kpi-value">${s.totalEmp}</div>
-        <div class="kpi-sub">Active workforce</div>
+        <div class="kpi-value">${s.totalEmp.toLocaleString()}</div>
+        <div class="kpi-sub up">${icons.trending} Active workforce</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">✅</div>
+        <div class="kpi-icon-wrap blue">${icons.attendance}</div>
         <div class="kpi-label">Present Today</div>
-        <div class="kpi-value">${s.present + s.halfday}</div>
-        <div class="kpi-sub">of ${s.totalEmp} total</div>
+        <div class="kpi-value">${(s.present + s.halfday).toLocaleString()}</div>
+        <div class="kpi-sub">${s.totalEmp > 0 ? Math.round(((s.present+s.halfday)/s.totalEmp)*100) : 0}% rate</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">📋</div>
+        <div class="kpi-icon-wrap yellow">${icons.leave}</div>
         <div class="kpi-label">Pending Requests</div>
         <div class="kpi-value">${s.pendingLeaves}</div>
-        ${s.pendingLeaves > 0 ? '<div class="kpi-sub warn">⚠ ACTION REQUIRED</div>' : '<div class="kpi-sub up">All clear</div>'}
+        ${s.pendingLeaves > 0
+          ? `<div class="kpi-sub warn">Action Required</div>`
+          : `<div class="kpi-sub up">All clear</div>`}
       </div>
-      <div class="kpi-card kpi-purple">
-        <div class="kpi-icon">🏖️</div>
+      <div class="kpi-card purple">
+        <div class="kpi-icon-wrap purple">${icons.calendar}</div>
         <div class="kpi-label">On Leave Today</div>
         <div class="kpi-value">${s.onLeave}</div>
         <div class="kpi-sub">Absent: ${s.absent}</div>
       </div>`;
 
-    // Activity
     document.getElementById('activityList').innerHTML = s.activity.length
-      ? s.activity.map(a => `
-          <div class="activity-item">
-            <div class="activity-dot purple">${a.icon}</div>
+      ? s.activity.map(a => {
+          const cat = a.category || 'system';
+          const ic  = icons[ACT_ICONS[cat] || 'settings'];
+          const cls = ACT_CLS[cat] || 'gray';
+          return `<div class="activity-item">
+            <div class="activity-icon-wrap ${cls}">${ic}</div>
             <div>
               <div class="activity-text">${a.text}</div>
               <div class="activity-desc">${a.description}</div>
               <div class="activity-time">${timeAgo(a.created_at)}</div>
             </div>
-          </div>`).join('')
-      : '<div style="color:var(--text-sm);text-align:center;padding:20px">No activity yet.</div>';
-  } catch(e) {
-    console.error(e);
-  }
+          </div>`;
+        }).join('')
+      : `<div class="loading-row">No activity yet.</div>`;
+  } catch(e) { console.error(e); }
 }
 
 async function loadPendingLeaves() {
@@ -132,25 +150,31 @@ async function loadPendingLeaves() {
           <tr>
             <td><div class="emp-cell">
               ${avatar(l.emp_name, l.emp_color)}
-              <div><div class="emp-name">${l.emp_name}</div><div class="emp-role">${l.emp_job}</div></div>
+              <div><div class="emp-name">${l.emp_name}</div><div class="emp-sub">${l.emp_job}</div></div>
             </div></td>
             <td>${badge(l.leave_type, l.type_name)}</td>
-            <td style="font-size:13px">${l.date_from} → ${l.date_to}<br/><span style="color:var(--text-sm)">${l.days} day${l.days>1?'s':''}</span></td>
-            <td>
-              <button class="btn btn-sm btn-danger"  onclick="rejectLeave(${l.id})" style="margin-right:4px">✕</button>
-              <button class="btn btn-sm btn-success" onclick="approveLeave(${l.id})">✓</button>
+            <td style="font-size:13px">
+              ${l.date_from} – ${l.date_to}
+              <div style="color:var(--text-sm);font-size:12px">${l.days} day${l.days>1?'s':''}</div>
             </td>
-          </tr>`).join('')
-      : `<tr><td colspan="4" style="text-align:center;color:var(--text-sm);padding:24px">No pending requests 🎉</td></tr>`;
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-danger"  style="padding:5px 10px" onclick="rejectLeave(${l.id})">${icons.x}</button>
+                <button class="btn btn-sm btn-success" style="padding:5px 10px" onclick="approveLeave(${l.id})">${icons.check}</button>
+              </div>
+            </td>
+          </tr>`)
+        .join('')
+      : `<tr><td colspan="4" class="loading-row">No pending requests</td></tr>`;
   } catch(e) { console.error(e); }
 }
 
 window.approveLeave = async (id) => {
-  try { await post(`/leaves/${id}/approve`); toast('Leave approved ✓'); loadPendingLeaves(); loadStats(); }
+  try { await post(`/leaves/${id}/approve`); toast('Leave approved'); loadPendingLeaves(); loadStats(); }
   catch(e) { toast(e.message, 'danger'); }
 };
 window.rejectLeave = async (id) => {
-  try { await post(`/leaves/${id}/reject`, { reason: '' }); toast('Leave rejected', 'danger'); loadPendingLeaves(); loadStats(); }
+  try { await post(`/leaves/${id}/reject`, { reason:'' }); toast('Leave rejected', 'danger'); loadPendingLeaves(); loadStats(); }
   catch(e) { toast(e.message, 'danger'); }
 };
 

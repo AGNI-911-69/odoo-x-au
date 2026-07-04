@@ -14,7 +14,7 @@
     <div class="page-content">
 
       <div class="page-header">
-        <div class="page-header-left">
+        <div>
           <h1>Leave &amp; Time-Off</h1>
           <p>Manage employee absence requests and personal leave balances.</p>
         </div>
@@ -23,18 +23,19 @@
         </div>
       </div>
 
-      <!-- Leave Balance Row -->
+      <!-- Balance Cards -->
       <div class="leave-balance-row" id="balanceRow"></div>
 
       <div class="leave-grid">
-        <!-- Left: New leave request form with calendar -->
+
+        <!-- Left: Calendar + Form + History -->
         <div>
-          <div class="calendar-wrap card">
+          <div class="calendar-wrap">
             <div class="cal-header">
-              <div style="font-size:16px;font-weight:700">New Leave Request</div>
-              <div style="display:flex;align-items:center;gap:8px">
+              <div class="cal-header-title">New Leave Request</div>
+              <div class="cal-nav-btns">
                 <button class="cal-nav" onclick="changeMonth(-1)">&#8249;</button>
-                <span id="calTitle" style="font-size:14px;font-weight:600;min-width:120px;text-align:center"></span>
+                <span class="cal-month-label" id="calTitle"></span>
                 <button class="cal-nav" onclick="changeMonth(1)">&#8250;</button>
               </div>
             </div>
@@ -50,10 +51,11 @@
                 <div><label>From</label><input type="date" id="leaveFrom" class="form-control" onchange="syncCalendar()"/></div>
                 <div><label>To</label><input type="date" id="leaveTo" class="form-control" onchange="syncCalendar()"/></div>
               </div>
-              <div><label>Reason / Remarks</label>
-                <textarea id="leaveReason" class="form-control" rows="3" placeholder="Describe the reason for leave…"></textarea>
+              <div>
+                <label>Reason / Remarks</label>
+                <textarea id="leaveReason" class="form-control" placeholder="Describe the reason for leave…"></textarea>
               </div>
-              <div id="leaveErr" style="color:var(--danger);font-size:13px;margin-top:8px;display:none"></div>
+              <div id="leaveErr" class="form-err"></div>
               <div class="leave-form-actions">
                 <button class="btn btn-primary" id="submitBtn" onclick="submitLeave()">Submit Request</button>
                 <button class="btn btn-outline" onclick="clearForm()">Cancel</button>
@@ -75,20 +77,20 @@
           </div>
         </div>
 
-        <!-- Right: HR Approvals -->
+        <!-- Right: Pending Approvals + All Requests -->
         <div>
           <div class="card" id="approvalsCard">
             <div class="panel-header">
               <div class="panel-title">Pending Approvals</div>
-              <span class="badge badge-pending" id="pendingBadge"></span>
+              <span class="badge badge-pending" id="pendingBadge" style="display:none"></span>
             </div>
             <div id="approvalList"><div class="loading-row">Loading…</div></div>
-            <div style="margin-top:12px">
-              <a href="#allSection" style="font-size:13px;color:var(--primary);font-weight:600">View All Requests History →</a>
+            <div style="margin-top:16px;text-align:right">
+              <a href="#allSection" class="panel-link" style="font-size:13px">View All Requests History</a>
             </div>
           </div>
 
-          <div class="card" id="allSection" style="margin-top:16px" id="allCard">
+          <div class="card" id="allSection" style="margin-top:16px">
             <div class="panel-header">
               <div class="panel-title">All Leave Requests</div>
               <select id="statusFilter" class="form-select" style="max-width:130px" onchange="loadAllLeaves()">
@@ -107,35 +109,35 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- Quick Apply Modal -->
+<!-- Apply Modal -->
 <div class="modal-overlay" id="applyModal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Apply for Leave</div>
-      <button class="modal-close" onclick="closeModal('applyModal')">✕</button>
+      <button class="modal-close" onclick="closeModal('applyModal')">×</button>
     </div>
     <div class="form-group"><label>Leave Type</label><select id="mType" class="form-select"></select></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="form-group"><label>From</label><input type="date" id="mFrom" class="form-control"/></div>
       <div class="form-group"><label>To</label><input type="date" id="mTo" class="form-control"/></div>
     </div>
-    <div class="form-group"><label>Reason</label><textarea id="mReason" class="form-control" rows="3" placeholder="Describe reason…"></textarea></div>
-    <div id="mErr" style="color:var(--danger);font-size:13px;margin-bottom:8px;display:none"></div>
+    <div class="form-group"><label>Reason / Remarks</label>
+      <textarea id="mReason" class="form-control" placeholder="Describe reason for leave…"></textarea>
+    </div>
+    <div id="mErr" class="form-err"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('applyModal')">Cancel</button>
       <button class="btn btn-primary" id="mSubmitBtn" onclick="submitModalLeave()">Submit Request</button>
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 <script type="module">
-import { Auth, get, post, badge, avatar, initials, toast, renderSidebar, renderTopbar } from './api.js';
+import { Auth, get, post, badge, avatar, initials, toast, icons, renderSidebar, renderTopbar } from './api.js';
 
 Auth.requireLogin();
 document.getElementById('sidebar').innerHTML = renderSidebar('leave');
@@ -145,203 +147,181 @@ const user = Auth.user();
 const isHR = Auth.isHR();
 let leaveTypes = [];
 
-// ── Calendar state ─────────────────────────────────────────────
-let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+// ── Calendar ───────────────────────────────────────────────────
+let cy = new Date().getFullYear(), cm = new Date().getMonth();
 let selFrom = null, selTo = null;
 
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 function renderCalendar() {
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('calTitle').textContent = `${months[calMonth]} ${calYear}`;
-  document.getElementById('calDayNames').innerHTML = ['S','M','T','W','T','F','S'].map(d => `<div class="cal-day-name">${d}</div>`).join('');
-  const first = new Date(calYear, calMonth, 1).getDay();
-  const total = new Date(calYear, calMonth + 1, 0).getDate();
-  const prevT = new Date(calYear, calMonth, 0).getDate();
+  document.getElementById('calTitle').textContent = `${MONTHS[cm]} ${cy}`;
+  document.getElementById('calDayNames').innerHTML =
+    ['S','M','T','W','T','F','S'].map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  const first = new Date(cy,cm,1).getDay();
+  const total = new Date(cy,cm+1,0).getDate();
+  const prevT = new Date(cy,cm,0).getDate();
   const todayStr = new Date().toISOString().slice(0,10);
-  let html = '';
-  for (let i = first-1; i >= 0; i--) html += `<div class="cal-day other-month">${prevT-i}</div>`;
-  for (let d = 1; d <= total; d++) {
-    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    let cls = 'cal-day';
-    if (ds === todayStr) cls += ' today';
-    if (selFrom && ds === selFrom) cls += ' selected';
-    if (selTo   && ds === selTo)   cls += ' selected';
-    if (selFrom && selTo && ds > selFrom && ds < selTo) cls += ' in-range';
-    html += `<div class="${cls}" onclick="pickDay('${ds}')">${d}</div>`;
+  let html='';
+  for(let i=first-1;i>=0;i--) html+=`<div class="cal-day other-month">${prevT-i}</div>`;
+  for(let d=1;d<=total;d++){
+    const ds=`${cy}-${String(cm+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    let cls='cal-day';
+    if(ds===todayStr) cls+=' today';
+    if(selFrom&&ds===selFrom) cls+=' selected';
+    if(selTo&&ds===selTo) cls+=' selected';
+    if(selFrom&&selTo&&ds>selFrom&&ds<selTo) cls+=' in-range';
+    html+=`<div class="${cls}" onclick="pickDay('${ds}')">${d}</div>`;
   }
-  document.getElementById('calDays').innerHTML = html;
+  document.getElementById('calDays').innerHTML=html;
 }
-window.changeMonth = dir => {
-  calMonth += dir;
-  if (calMonth > 11) { calMonth = 0; calYear++; }
-  if (calMonth < 0)  { calMonth = 11; calYear--; }
+window.changeMonth=dir=>{cm+=dir;if(cm>11){cm=0;cy++;}if(cm<0){cm=11;cy--;}renderCalendar();};
+window.pickDay=ds=>{
+  if(!selFrom||(selFrom&&selTo)){selFrom=ds;selTo=null;}
+  else if(ds<selFrom){selFrom=ds;selTo=null;}
+  else selTo=ds;
+  document.getElementById('leaveFrom').value=selFrom||'';
+  document.getElementById('leaveTo').value=selTo||'';
   renderCalendar();
 };
-window.pickDay = ds => {
-  if (!selFrom || (selFrom && selTo)) { selFrom = ds; selTo = null; }
-  else if (ds < selFrom) { selFrom = ds; selTo = null; }
-  else selTo = ds;
-  document.getElementById('leaveFrom').value = selFrom || '';
-  document.getElementById('leaveTo').value   = selTo   || '';
-  renderCalendar();
-};
-window.syncCalendar = () => {
-  selFrom = document.getElementById('leaveFrom').value || null;
-  selTo   = document.getElementById('leaveTo').value   || null;
+window.syncCalendar=()=>{
+  selFrom=document.getElementById('leaveFrom').value||null;
+  selTo=document.getElementById('leaveTo').value||null;
   renderCalendar();
 };
 
-// ── Load leave types ───────────────────────────────────────────
 async function loadLeaveTypes() {
   leaveTypes = await get('/leave-types');
-  const opts = leaveTypes.map(lt => `<option value="${lt.code}">${lt.name}</option>`).join('');
+  const opts = leaveTypes.map(lt=>`<option value="${lt.code}">${lt.name}</option>`).join('');
   document.getElementById('leaveType').innerHTML = opts;
-  document.getElementById('mType').innerHTML     = opts;
+  document.getElementById('mType').innerHTML = opts;
 }
 
-// ── Leave balances (based on approved leaves for this user) ───
 async function loadBalances() {
   try {
     const myLeaves = await get('/leaves');
-    const balHtml  = leaveTypes.map(lt => {
-      const used = myLeaves.filter(l => l.leave_type === lt.code && l.status === 'approved').reduce((s,l) => s + l.days, 0);
-      const rem  = Math.max(0, lt.max_days - used);
+    const icons_map = { ANNUAL:'money', SICK:'clock', UNPAID:'calendar', CASUAL:'leave' };
+    const cls_map   = { ANNUAL:'purple', SICK:'red', UNPAID:'blue', CASUAL:'blue' };
+    document.getElementById('balanceRow').innerHTML = leaveTypes.slice(0,3).map(lt=>{
+      const used = myLeaves.filter(l=>l.leave_type===lt.code&&l.status==='approved').reduce((s,l)=>s+l.days,0);
+      const rem  = Math.max(0, lt.max_days-used);
       return `<div class="balance-card">
-        <div class="bal-type">${lt.name.split(' ')[0]}</div>
-        <div class="bal-days" style="color:var(--primary)">${rem} Days</div>
-        <div class="bal-label">${used > 0 ? used+' used of '+lt.max_days : 'Max '+lt.max_days+' days'}</div>
+        <div class="balance-icon-wrap ${cls_map[lt.code]||'purple'}">
+          ${icons[icons_map[lt.code]||'calendar']}
+        </div>
+        <div>
+          <div class="bal-type">${lt.code.charAt(0)+lt.code.slice(1).toLowerCase()}</div>
+          <div class="bal-days">${String(rem).padStart(2,'0')} Days</div>
+          <div class="bal-label">${lt.name.replace('Paid ','').replace(' Leave','') + ' Balance'}</div>
+        </div>
       </div>`;
     }).join('');
-    document.getElementById('balanceRow').innerHTML = balHtml;
-  } catch(e) {}
+  } catch(e){}
 }
 
-// ── My leave history ───────────────────────────────────────────
 async function loadMyLeaves() {
   try {
     const data = await get('/leaves');
     document.getElementById('myLeaveTable').innerHTML = data.length
-      ? data.map(l => `<tr>
+      ? data.map(l=>`<tr>
           <td>${badge(l.leave_type, l.type_name)}</td>
-          <td>${l.date_from}</td><td>${l.date_to}</td><td>${l.days}</td>
+          <td style="font-size:13px">${l.date_from}</td>
+          <td style="font-size:13px">${l.date_to}</td>
+          <td>${l.days}</td>
           <td style="max-width:160px;font-size:12px;color:var(--text-sm)">${(l.reason||'').slice(0,60)}${(l.reason||'').length>60?'…':''}</td>
           <td>${badge(l.status)}</td>
         </tr>`).join('')
       : '<tr><td colspan="6" class="loading-row">No leave requests yet.</td></tr>';
-  } catch(e) {}
+  } catch(e){}
 }
 
-// ── HR: Pending approvals ──────────────────────────────────────
 async function loadApprovals() {
-  if (!isHR) { document.getElementById('approvalsCard').style.display='none'; return; }
+  if(!isHR){document.getElementById('approvalsCard').style.display='none';return;}
   try {
     const data = await get('/leaves?status=pending');
-    document.getElementById('pendingBadge').textContent = data.length + ' Requests';
+    const pb = document.getElementById('pendingBadge');
+    pb.style.display = data.length ? 'inline-flex' : 'none';
+    pb.textContent = data.length + ' Requests';
     document.getElementById('approvalList').innerHTML = data.length
-      ? data.map(l => `
-          <div class="approval-card">
-            <div class="approval-top">
-              <div class="approval-person">
-                ${avatar(l.emp_name, l.emp_color)}
-                <div><div class="approval-name">${l.emp_name}</div><div class="approval-role">${l.emp_job}</div></div>
-              </div>
-              ${badge(l.leave_type, l.type_name)}
+      ? data.map(l=>`<div class="approval-card">
+          <div class="approval-top">
+            <div class="approval-person">
+              ${avatar(l.emp_name, l.emp_color, 38)}
+              <div><div class="approval-name">${l.emp_name}</div><div class="approval-role">${l.emp_job}</div></div>
             </div>
-            <div class="approval-reason">"${l.reason}"</div>
-            <div class="approval-dates">📅 ${l.date_from} – ${l.date_to} (${l.days} day${l.days>1?'s':''})</div>
-            <div class="approval-btns">
-              <button class="btn btn-primary btn-sm" onclick="approve(${l.id})">Approve</button>
-              <button class="btn btn-outline btn-sm" onclick="reject(${l.id})" style="color:var(--danger);border-color:var(--danger)">Reject</button>
-            </div>
-          </div>`).join('')
-      : '<div style="text-align:center;padding:20px;color:var(--text-sm)">No pending requests 🎉</div>';
-  } catch(e) {}
+            ${badge(l.leave_type, l.type_name)}
+          </div>
+          <div class="approval-reason">"${l.reason||'No reason provided'}"</div>
+          <div class="approval-dates">${icons.calendar} ${l.date_from} – ${l.date_to} &nbsp;(${l.days} day${l.days>1?'s':''})</div>
+          <div class="approval-btns">
+            <button class="btn btn-primary btn-sm" onclick="approve(${l.id})">Approve</button>
+            <button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="reject(${l.id})">Reject</button>
+          </div>
+        </div>`).join('')
+      : '<div class="loading-row">No pending requests</div>';
+  } catch(e){}
 }
 
 window.loadAllLeaves = async function() {
-  if (!isHR) return;
+  if(!isHR)return;
   try {
-    const f    = document.getElementById('statusFilter').value;
-    const data = await get('/leaves' + (f ? '?status='+f : ''));
+    const f = document.getElementById('statusFilter').value;
+    const data = await get('/leaves'+(f?'?status='+f:''));
     document.getElementById('allLeaveTable').innerHTML = data.length
-      ? data.map(l => `<tr>
-          <td><div class="emp-cell">${avatar(l.emp_name, l.emp_color)}<div><div class="emp-name">${l.emp_name}</div><div class="emp-role">${l.emp_job}</div></div></div></td>
-          <td>${badge(l.leave_type, l.type_name)}</td>
+      ? data.map(l=>`<tr>
+          <td><div class="emp-cell">${avatar(l.emp_name,l.emp_color)}<div><div class="emp-name">${l.emp_name}</div><div class="emp-sub">${l.emp_job}</div></div></div></td>
+          <td>${badge(l.leave_type,l.type_name)}</td>
           <td style="font-size:13px">${l.date_from} – ${l.date_to}</td>
           <td>${l.days}</td>
           <td>${badge(l.status)}</td>
-          <td>${l.status==='pending' ? `
-            <button class="btn btn-sm btn-success" onclick="approve(${l.id})">✓</button>
-            <button class="btn btn-sm btn-danger"  onclick="reject(${l.id})" style="margin-left:4px">✕</button>` : '—'}
+          <td>${l.status==='pending'?`
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-success" style="padding:5px 10px" onclick="approve(${l.id})">${icons.check}</button>
+              <button class="btn btn-sm btn-danger"  style="padding:5px 10px" onclick="reject(${l.id})">${icons.x}</button>
+            </div>`:'—'}
           </td>
         </tr>`).join('')
       : '<tr><td colspan="6" class="loading-row">No records.</td></tr>';
-  } catch(e) {}
+  } catch(e){}
 };
 
-window.approve = async (id) => {
-  try { await post(`/leaves/${id}/approve`); toast('Leave approved ✓'); refresh(); }
-  catch(e) { toast(e.message, 'danger'); }
-};
-window.reject = async (id) => {
-  try { await post(`/leaves/${id}/reject`, { reason: '' }); toast('Leave rejected', 'danger'); refresh(); }
-  catch(e) { toast(e.message, 'danger'); }
-};
+window.approve=async id=>{try{await post(`/leaves/${id}/approve`);toast('Leave approved');refresh();}catch(e){toast(e.message,'danger');}};
+window.reject =async id=>{try{await post(`/leaves/${id}/reject`,{reason:''});toast('Leave rejected','danger');refresh();}catch(e){toast(e.message,'danger');}};
+function refresh(){loadMyLeaves();loadApprovals();loadAllLeaves();loadBalances();}
 
-function refresh() { loadMyLeaves(); loadApprovals(); loadAllLeaves(); loadBalances(); }
-
-// ── Submit leave ───────────────────────────────────────────────
 window.submitLeave = async () => {
-  const err  = document.getElementById('leaveErr');
-  const btn  = document.getElementById('submitBtn');
-  const from = document.getElementById('leaveFrom').value;
-  const to   = document.getElementById('leaveTo').value;
-  if (!from || !to) { err.textContent='Select a date range'; err.style.display='block'; return; }
-  if (to < from)    { err.textContent='End date must be after start date'; err.style.display='block'; return; }
-  err.style.display='none'; btn.disabled=true; btn.textContent='Submitting…';
+  const err=document.getElementById('leaveErr'),btn=document.getElementById('submitBtn');
+  const from=document.getElementById('leaveFrom').value, to=document.getElementById('leaveTo').value;
+  if(!from||!to){err.textContent='Please select a date range';err.style.display='block';return;}
+  if(to<from){err.textContent='End date must be after start date';err.style.display='block';return;}
+  err.style.display='none';btn.disabled=true;btn.textContent='Submitting…';
   try {
-    await post('/leaves', { leave_type: document.getElementById('leaveType').value, date_from: from, date_to: to, reason: document.getElementById('leaveReason').value.trim() });
-    toast('Leave request submitted ✓');
-    clearForm(); refresh();
-  } catch(ex) { err.textContent=ex.message; err.style.display='block'; }
-  finally { btn.disabled=false; btn.textContent='Submit Request'; }
+    await post('/leaves',{leave_type:document.getElementById('leaveType').value,date_from:from,date_to:to,reason:document.getElementById('leaveReason').value.trim()});
+    toast('Leave request submitted');clearForm();refresh();
+  } catch(ex){err.textContent=ex.message;err.style.display='block';}
+  finally{btn.disabled=false;btn.textContent='Submit Request';}
 };
-
 window.submitModalLeave = async () => {
-  const err = document.getElementById('mErr');
-  const btn = document.getElementById('mSubmitBtn');
-  const from = document.getElementById('mFrom').value;
-  const to   = document.getElementById('mTo').value;
-  if (!from || !to) { err.textContent='Select dates'; err.style.display='block'; return; }
-  err.style.display='none'; btn.disabled=true; btn.textContent='Submitting…';
+  const err=document.getElementById('mErr'),btn=document.getElementById('mSubmitBtn');
+  const from=document.getElementById('mFrom').value, to=document.getElementById('mTo').value;
+  if(!from||!to){err.textContent='Please select dates';err.style.display='block';return;}
+  err.style.display='none';btn.disabled=true;btn.textContent='Submitting…';
   try {
-    await post('/leaves', { leave_type: document.getElementById('mType').value, date_from: from, date_to: to, reason: document.getElementById('mReason').value.trim() });
-    closeModal('applyModal');
-    toast('Leave request submitted ✓');
-    refresh();
-  } catch(ex) { err.textContent=ex.message; err.style.display='block'; }
-  finally { btn.disabled=false; btn.textContent='Submit Request'; }
+    await post('/leaves',{leave_type:document.getElementById('mType').value,date_from:from,date_to:to,reason:document.getElementById('mReason').value.trim()});
+    closeModal('applyModal');toast('Leave request submitted');refresh();
+  } catch(ex){err.textContent=ex.message;err.style.display='block';}
+  finally{btn.disabled=false;btn.textContent='Submit Request';}
 };
+window.clearForm=()=>{selFrom=selTo=null;['leaveFrom','leaveTo','leaveReason'].forEach(id=>document.getElementById(id).value='');document.getElementById('leaveErr').style.display='none';renderCalendar();};
+window.openModal =id=>document.getElementById(id).classList.add('open');
+window.closeModal=id=>document.getElementById(id).classList.remove('open');
 
-window.clearForm = () => {
-  selFrom = selTo = null;
-  document.getElementById('leaveFrom').value = '';
-  document.getElementById('leaveTo').value   = '';
-  document.getElementById('leaveReason').value = '';
-  document.getElementById('leaveErr').style.display = 'none';
-  renderCalendar();
-};
-
-window.openModal  = id => document.getElementById(id).classList.add('open');
-window.closeModal = id => document.getElementById(id).classList.remove('open');
-
-// ── Init ───────────────────────────────────────────────────────
 await loadLeaveTypes();
 renderCalendar();
 loadBalances();
 loadMyLeaves();
 loadApprovals();
-if (isHR) loadAllLeaves();
-else document.getElementById('allSection').style.display = 'none';
+if(isHR)loadAllLeaves();
+else document.getElementById('allSection').style.display='none';
 </script>
 </body>
 </html>
