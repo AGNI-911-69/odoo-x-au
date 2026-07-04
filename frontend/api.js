@@ -145,8 +145,13 @@ export function renderSidebar(active) {
     </div>
     <nav class="sidebar-nav">${items}</nav>
     <div class="sidebar-bottom">
-      <a href="attendance.html" class="nav-item">${icons.checkin}<span>Check In/Out</span></a>
-      <a href="#" class="nav-item" onclick="doLogout();return false;">${icons.logout}<span>Sign Out</span></a>
+      <div class="sidebar-bottom-links">
+        <a href="#" class="nav-item-sub">${icons.settings}<span>Settings</span></a>
+        <a href="#" class="nav-item-sub" onclick="doLogout();return false;">${icons.support}<span>Support</span></a>
+      </div>
+      <button class="sidebar-checkin-btn" onclick="window.location.href='attendance.html'">
+        ${icons.checkin} Check In/Out
+      </button>
     </div>`;
 }
 

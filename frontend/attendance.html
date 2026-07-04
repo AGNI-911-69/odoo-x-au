@@ -34,8 +34,14 @@
           <p>Track, monitor, and manage organizational attendance records.</p>
         </div>
         <div class="page-header-actions">
-          <button class="btn btn-primary" id="checkInBtn">${'→'} Check In</button>
-          <button class="btn btn-outline" onclick="exportCSV()">${'↓'} Export CSV</button>
+          <button class="btn btn-primary" id="checkInBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Check In
+          </button>
+          <button class="btn btn-outline" onclick="exportCSV()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
         </div>
       </div>
 
@@ -78,6 +84,10 @@
               <tr><td colspan="6" class="loading-row">Loading…</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="table-footer">
+          <span id="showingLabel">Loading…</span>
+          <div class="pagination" id="pagination"></div>
         </div>
       </div>
 
@@ -182,6 +192,17 @@ window.loadTable = async function() {
     }
     document.getElementById('attTable').innerHTML = rows ||
       `<tr><td colspan="6" class="loading-row">No records for this date.</td></tr>`;
+
+    // Pagination footer
+    const total = isHR ? (await get('/employees')).length : attRows.length;
+    const shown = rows ? rows.split('<tr>').length - 1 : 0;
+    document.getElementById('showingLabel').textContent = `Showing ${shown} of ${total} entries`;
+    const pages = Math.ceil(total / 10);
+    let pgHtml = `<button class="page-btn arrow">&lsaquo;</button>`;
+    for(let i=1;i<=Math.min(pages,3);i++) pgHtml+=`<button class="page-btn${i===1?' active':''}">${i}</button>`;
+    if(pages>3) pgHtml+=`<span style="padding:0 4px;color:var(--text-sm)">…</span>`;
+    pgHtml+=`<button class="page-btn arrow">&rsaquo;</button>`;
+    document.getElementById('pagination').innerHTML = pgHtml;
   } catch(e) { toast(e.message, 'danger'); }
 };
 
