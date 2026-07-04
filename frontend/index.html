@@ -8,140 +8,217 @@
   <meta http-equiv="Expires" content="0"/>
   <title>Odoo HRMS — Sign In</title>
   <link rel="stylesheet" href="style.css"/>
-  <style>
-    .login-brand-row { display:flex; align-items:center; justify-content:center; margin-bottom:20px; }
-    .login-brand-name { font-size:20px; font-weight:800; color:var(--primary); }
-  </style>
 </head>
 <body>
 <div class="login-page">
   <div class="login-card">
 
-    <div class="login-brand-row">
+    <div style="display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
       <img src="company logo/Screenshot 2026-07-04 112039.png" alt="Odoo HRMS" style="height:48px;width:auto;object-fit:contain"/>
     </div>
 
-    <!-- Sign In -->
+    <!-- Sign In View -->
     <div id="loginView">
       <div class="login-title">Welcome back</div>
       <div class="login-sub">Sign in to your account to continue</div>
-      <form id="loginForm" autocomplete="off">
-        <div class="form-group">
-          <label>Email Address</label>
-          <input id="liEmail" class="form-control" type="email" placeholder="you@company.com" required autocomplete="email"/>
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input id="liPass" class="form-control" type="password" placeholder="••••••••" required/>
-        </div>
-        <div id="loginErr" class="login-err"></div>
-        <button type="submit" class="btn btn-primary login-btn" id="loginBtn">Sign In</button>
-      </form>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input id="liEmail" class="form-control" type="email" placeholder="you@company.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="liPass" class="form-control" type="password" placeholder="••••••••"/>
+      </div>
+      <div id="loginErr" class="login-err"></div>
+      <button class="btn btn-primary login-btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+
       <div class="login-switch">
-        Don't have an account? <a href="#" id="toRegLink">Register here</a>
+        Don't have an account?
+        <a href="#" onclick="showReg();return false;"><strong>Register here</strong></a>
       </div>
     </div>
 
-    <!-- Register -->
-    <div id="regView" style="display:none">
+    <!-- Register View -->
+    <div id="regView" style="display:none;">
       <div class="login-title">Create account</div>
       <div class="login-sub">Register to access the HRMS platform</div>
-      <form id="regForm" autocomplete="off">
-        <div class="form-group">
-          <label>Full Name</label>
-          <input id="reName" class="form-control" type="text" placeholder="Jane Doe" required/>
-        </div>
-        <div class="form-group">
-          <label>Email Address</label>
-          <input id="reEmail" class="form-control" type="email" placeholder="you@company.com" required/>
-        </div>
-        <div class="form-group">
-          <label>Password <span style="color:var(--text-sm);font-weight:400">(min 6 characters)</span></label>
-          <input id="rePass" class="form-control" type="password" placeholder="••••••••" required/>
-        </div>
-        <div class="form-group">
-          <label>Role</label>
-          <select id="reRole" class="form-select">
-            <option value="employee">Employee</option>
-            <option value="hr">HR Officer</option>
-            <option value="admin">Administrator</option>
-          </select>
-        </div>
-        <div id="regErr" class="login-err"></div>
-        <button type="submit" class="btn btn-primary login-btn" id="regBtn">Create Account</button>
-      </form>
+
+      <div class="form-group">
+        <label>Full Name</label>
+        <input id="reName" class="form-control" type="text" placeholder="Jane Doe"/>
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input id="reEmail" class="form-control" type="email" placeholder="you@company.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password <span style="font-weight:400;color:#9CA3AF">(min 6 chars)</span></label>
+        <input id="rePass" class="form-control" type="password" placeholder="••••••••"/>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="reRole" class="form-select">
+          <option value="employee">Employee</option>
+          <option value="hr">HR Officer</option>
+          <option value="admin">Administrator</option>
+        </select>
+      </div>
+      <div id="regErr" class="login-err"></div>
+      <button class="btn btn-primary login-btn" id="regBtn" onclick="doRegister()">Create Account</button>
+
       <div class="login-switch">
-        Already have an account? <a href="#" id="toLoginLink">Sign in</a>
+        Already have an account?
+        <a href="#" onclick="showLogin();return false;"><strong>Sign in</strong></a>
       </div>
     </div>
 
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="config.js?v=2"></script>
-<script type="module">
-import { Auth, post } from './api.js';
 
-// Redirect if already logged in
-if (Auth.token()) {
-  window.location.href = Auth.isHR() ? 'dashboard.html' : 'employees.html';
-}
+<!-- Plain script — NO type=module so onclick works -->
+<script src="config.js"></script>
+<script>
+  // ── Read API URL from config.js ──────────────────────────────
+  var BASE = (window.HRMS_API_URL || 'http://localhost:3000/api');
 
-// Ping backend to wake Railway before user clicks
-fetch((window.HRMS_API_URL || 'http://localhost:3000/api').replace('/api', '/health')).catch(() => {});
+  // ── Redirect if already logged in ───────────────────────────
+  (function() {
+    try {
+      var token = sessionStorage.getItem('hrms_token');
+      var user  = JSON.parse(sessionStorage.getItem('hrms_user') || 'null');
+      if (token && user) {
+        window.location.href = (user.role === 'employee') ? 'employees.html' : 'dashboard.html';
+      }
+    } catch(e) {}
+  })();
 
-// ── View toggle — use addEventListener, NOT onclick attributes ──
-function showView(v) {
-  document.getElementById('loginView').style.display = v === 'login' ? 'block' : 'none';
-  document.getElementById('regView').style.display   = v === 'reg'   ? 'block' : 'none';
-}
+  // Ping backend to wake Railway
+  fetch(BASE.replace('/api', '/health')).catch(function(){});
 
-document.getElementById('toRegLink').addEventListener('click', e => { e.preventDefault(); showView('reg'); });
-document.getElementById('toLoginLink').addEventListener('click', e => { e.preventDefault(); showView('login'); });
-
-// ── Login ────────────────────────────────────────────────────────
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('loginBtn');
-  const err = document.getElementById('loginErr');
-  err.style.display = 'none';
-  btn.textContent = 'Signing in…'; btn.disabled = true;
-  try {
-    const data = await post('/auth/login', {
-      email:    document.getElementById('liEmail').value.trim(),
-      password: document.getElementById('liPass').value,
-    });
-    if (!data || !data.token) throw new Error('Invalid server response — please try again.');
-    Auth.set(data.token, data.user);
-    window.location.href = data.user.role === 'employee' ? 'employees.html' : 'dashboard.html';
-  } catch (ex) {
-    err.textContent = ex.message; err.style.display = 'block';
-    btn.textContent = 'Sign In'; btn.disabled = false;
+  // ── View toggle ──────────────────────────────────────────────
+  function showReg() {
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('regView').style.display   = 'block';
   }
-});
-
-// ── Register ─────────────────────────────────────────────────────
-document.getElementById('regForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('regBtn');
-  const err = document.getElementById('regErr');
-  err.style.display = 'none';
-  btn.textContent = 'Creating…'; btn.disabled = true;
-  try {
-    const data = await post('/auth/register', {
-      name:     document.getElementById('reName').value.trim(),
-      email:    document.getElementById('reEmail').value.trim(),
-      password: document.getElementById('rePass').value,
-      role:     document.getElementById('reRole').value,
-    });
-    if (!data || !data.token) throw new Error('Invalid server response — please try again.');
-    Auth.set(data.token, data.user);
-    window.location.href = data.user.role === 'employee' ? 'employees.html' : 'dashboard.html';
-  } catch (ex) {
-    err.textContent = ex.message; err.style.display = 'block';
-    btn.textContent = 'Create Account'; btn.disabled = false;
+  function showLogin() {
+    document.getElementById('regView').style.display   = 'none';
+    document.getElementById('loginView').style.display = 'block';
   }
-});
+
+  // ── Toast ────────────────────────────────────────────────────
+  function showToast(msg, type) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className   = 'toast ' + (type || 'success') + ' show';
+    setTimeout(function(){ t.classList.remove('show'); }, 3500);
+  }
+
+  // ── API call helper ──────────────────────────────────────────
+  function apiPost(path, body, callback) {
+    fetch(BASE + path, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body)
+    })
+    .then(function(res) {
+      return res.json().then(function(data) {
+        return { ok: res.ok, data: data };
+      });
+    })
+    .then(function(r) {
+      if (!r.ok) { callback(r.data.error || 'Request failed', null); }
+      else        { callback(null, r.data); }
+    })
+    .catch(function(err) {
+      if (err.name === 'AbortError' || err.message.includes('timeout')) {
+        callback('Server is waking up — please try again in a few seconds.', null);
+      } else {
+        callback('Network error: ' + err.message, null);
+      }
+    });
+  }
+
+  // ── Login ────────────────────────────────────────────────────
+  function doLogin() {
+    var email = document.getElementById('liEmail').value.trim();
+    var pass  = document.getElementById('liPass').value;
+    var btn   = document.getElementById('loginBtn');
+    var err   = document.getElementById('loginErr');
+
+    if (!email || !pass) {
+      err.textContent = 'Please enter your email and password.';
+      err.style.display = 'block'; return;
+    }
+    err.style.display = 'none';
+    btn.textContent = 'Signing in…'; btn.disabled = true;
+
+    apiPost('/auth/login', { email: email, password: pass }, function(error, data) {
+      if (error) {
+        err.textContent = error; err.style.display = 'block';
+        btn.textContent = 'Sign In'; btn.disabled = false;
+        return;
+      }
+      if (!data || !data.token) {
+        err.textContent = 'Invalid server response. Please try again.';
+        err.style.display = 'block';
+        btn.textContent = 'Sign In'; btn.disabled = false;
+        return;
+      }
+      sessionStorage.setItem('hrms_token', data.token);
+      sessionStorage.setItem('hrms_user',  JSON.stringify(data.user));
+      window.location.href = (data.user.role === 'employee') ? 'employees.html' : 'dashboard.html';
+    });
+  }
+
+  // ── Register ─────────────────────────────────────────────────
+  function doRegister() {
+    var name  = document.getElementById('reName').value.trim();
+    var email = document.getElementById('reEmail').value.trim();
+    var pass  = document.getElementById('rePass').value;
+    var role  = document.getElementById('reRole').value;
+    var btn   = document.getElementById('regBtn');
+    var err   = document.getElementById('regErr');
+
+    if (!name || !email || !pass) {
+      err.textContent = 'All fields are required.';
+      err.style.display = 'block'; return;
+    }
+    if (pass.length < 6) {
+      err.textContent = 'Password must be at least 6 characters.';
+      err.style.display = 'block'; return;
+    }
+    err.style.display = 'none';
+    btn.textContent = 'Creating…'; btn.disabled = true;
+
+    apiPost('/auth/register', { name: name, email: email, password: pass, role: role }, function(error, data) {
+      if (error) {
+        err.textContent = error; err.style.display = 'block';
+        btn.textContent = 'Create Account'; btn.disabled = false;
+        return;
+      }
+      if (!data || !data.token) {
+        err.textContent = 'Invalid server response. Please try again.';
+        err.style.display = 'block';
+        btn.textContent = 'Create Account'; btn.disabled = false;
+        return;
+      }
+      sessionStorage.setItem('hrms_token', data.token);
+      sessionStorage.setItem('hrms_user',  JSON.stringify(data.user));
+      window.location.href = (data.user.role === 'employee') ? 'employees.html' : 'dashboard.html';
+    });
+  }
+
+  // Allow Enter key on login fields
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('liPass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') doLogin();
+    });
+    document.getElementById('rePass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') doRegister();
+    });
+  });
 </script>
 </body>
 </html>
