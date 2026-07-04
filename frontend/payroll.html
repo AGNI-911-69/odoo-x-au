@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Payroll — Enterprise HRMS</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Payroll</h1>
+          <p>View and manage employee salary records.</p>
+        </div>
+        <div class="page-header-actions" id="hrActions"></div>
+      </div>
+      <div class="payroll-summary" id="payrollSummary"></div>
+      <div class="card">
+        <div class="panel-header">
+          <div class="panel-title" id="tableTitle">Payroll Records</div>
+          <div style="display:flex;gap:10px">
+            <select id="monthFilter" class="form-select" style="max-width:150px" onchange="renderTable()">
+              <option value="">All Months</option>
+              <option>January 2026</option><option>February 2026</option>
+              <option>March 2026</option><option>April 2026</option>
+              <option>May 2026</option><option>June 2026</option>
+              <option selected>October 2026</option><option>November 2026</option>
+              <option>December 2026</option>
+            </select>
+            <select id="stateFilter" class="form-select" style="max-width:140px" onchange="renderTable()">
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="payTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Payroll Modal (HR only) -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Payroll Record</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Employee</label>
+      <select id="pEmp" class="form-select"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Month</label>
+        <select id="pMonth" class="form-select">
+          <option>January 2026</option><option>February 2026</option>
+          <option>March 2026</option><option>April 2026</option>
+          <option>May 2026</option><option>June 2026</option>
+          <option>July 2026</option><option>August 2026</option>
+          <option>September 2026</option><option selected>October 2026</option>
+          <option>November 2026</option><option>December 2026</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Basic Salary</label>
+        <input id="pBasic" class="form-control" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group"><label>HRA</label>
+        <input id="pHra" class="form-control" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group"><label>Transport Allowance</label>
+        <input id="pTransport" class="form-control" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group"><label>Medical Allowance</label>
+        <input id="pMedical" class="form-control" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group"><label>Tax Deduction</label>
+        <input id="pTax" class="form-control" type="number" placeholder="0"/>
+      </div>
+      <div class="form-group"><label>Provident Fund</label>
+        <input id="pPf" class="form-control" type="number" placeholder="0"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePayroll()">Save Record</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+
+<script>
+HRMS.requireLogin();
+document.getElementById('sidebar').innerHTML = HRMS.renderSidebar('payroll');
+document.getElementById('topbar').innerHTML  = HRMS.renderTopbar();
+
+const user = HRMS.getUser();
+const isHR = user && (user.roleKey === 'hr' || user.roleKey === 'admin');
+
+// HR gets Add button
+if (isHR) {
+  document.getElementById('hrActions').innerHTML =
+    '<button class="btn btn-primary" onclick="openAddModal()">+ Add Payroll</button>';
+  document.getElementById('tableTitle').textContent = 'All Employee Payroll';
+  // populate employee dropdown
+  const sel = document.getElementById('pEmp');
+  HRMS.getEmployees().forEach(e => {
+    const o = document.createElement('option'); o.value = e.id; o.textContent = e.name; sel.appendChild(o);
+  });
+}
+
+function renderSummary() {
+  const pay    = isHR ? HRMS.getPayroll() : HRMS.getPayroll().filter(p => p.empId === user.empId);
+  const gross  = pay.reduce((s,p) => s + (p.basic + p.hra + p.transport + p.medical + (p.other||0)), 0);
+  const deduct = pay.reduce((s,p) => s + (p.tax + p.pf), 0);
+  const net    = gross - deduct;
+  const paid   = pay.filter(p => p.state === 'paid').length;
+  document.getElementById('payrollSummary').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-label">Total Gross</div>
+      <div class="kpi-value" style="font-size:26px">$${gross.toLocaleString()}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📉</div>
+      <div class="kpi-label">Total Deductions</div>
+      <div class="kpi-value" style="font-size:26px;color:var(--danger)">$${deduct.toLocaleString()}</div>
+    </div>
+    <div class="kpi-card kpi-purple">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-label">Net Pay</div>
+      <div class="kpi-value" style="font-size:26px">$${net.toLocaleString()}</div>
+      <div class="kpi-sub">${paid} records paid</div>
+    </div>`;
+}
+
+function renderTable() {
+  const monthF = document.getElementById('monthFilter').value;
+  const stateF = document.getElementById('stateFilter').value;
+  let pay = isHR ? HRMS.getPayroll() : HRMS.getPayroll().filter(p => p.empId === user.empId);
+  if (monthF) pay = pay.filter(p => p.month === monthF);
+  if (stateF) pay = pay.filter(p => p.state === stateF);
+
+  document.getElementById('tableHead').innerHTML = `<tr>
+    ${isHR ? '<th>Employee</th>' : ''}
+    <th>Month</th><th>Basic</th><th>Allowances</th>
+    <th>Gross</th><th>Deductions</th><th>Net Salary</th><th>Status</th>
+    ${isHR ? '<th>Action</th>' : ''}
+  </tr>`;
+
+  document.getElementById('payTable').innerHTML = pay.length ? pay.map(p => {
+    const allow = (p.hra||0)+(p.transport||0)+(p.medical||0)+(p.other||0);
+    const gross = p.basic + allow;
+    const deduct= (p.tax||0)+(p.pf||0);
+    const net   = gross - deduct;
+    return `<tr>
+      ${isHR ? `<td><strong>${p.empName}</strong></td>` : ''}
+      <td>${p.month}</td>
+      <td>$${p.basic.toLocaleString()}</td>
+      <td>$${allow.toLocaleString()}</td>
+      <td style="font-weight:700">$${gross.toLocaleString()}</td>
+      <td style="color:var(--danger)">$${deduct.toLocaleString()}</td>
+      <td style="font-weight:800;color:var(--primary);font-size:16px">$${net.toLocaleString()}</td>
+      <td>${HRMS.badgeHtml(p.state)}</td>
+      ${isHR ? `<td>
+        ${p.state==='draft'?`<button class="btn btn-sm btn-outline" onclick="confirmPay(${p.id})">Confirm</button>`:''}
+        ${p.state==='confirmed'?`<button class="btn btn-sm btn-success" onclick="markPaid(${p.id})">Mark Paid</button>`:''}
+        ${p.state==='paid'?'<span style="color:var(--text-sm);font-size:12px">Paid ✓</span>':''}
+      </td>` : ''}
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-sm)">No payroll records found.</td></tr>`;
+}
+
+function confirmPay(id) {
+  const pay = HRMS.getPayroll(); const r = pay.find(p => p.id === id);
+  if (r) { r.state = 'confirmed'; savePayroll_(pay); HRMS.toast('Payroll confirmed ✓'); renderTable(); renderSummary(); }
+}
+function markPaid(id) {
+  const pay = HRMS.getPayroll(); const r = pay.find(p => p.id === id);
+  if (r) { r.state = 'paid'; savePayroll_(pay); HRMS.toast('Marked as paid ✓'); renderTable(); renderSummary(); }
+}
+function savePayroll_(data) { try { localStorage.setItem('hrms_payroll', JSON.stringify(data)); } catch(e) {} }
+
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function savePayroll() {
+  const empId  = parseInt(document.getElementById('pEmp').value);
+  const emp    = HRMS.getEmployee(empId);
+  const month  = document.getElementById('pMonth').value;
+  const basic  = parseFloat(document.getElementById('pBasic').value)||0;
+  const hra    = parseFloat(document.getElementById('pHra').value)||0;
+  const transport = parseFloat(document.getElementById('pTransport').value)||0;
+  const medical= parseFloat(document.getElementById('pMedical').value)||0;
+  const tax    = parseFloat(document.getElementById('pTax').value)||0;
+  const pf     = parseFloat(document.getElementById('pPf').value)||0;
+  if (!basic)  { HRMS.toast('Basic salary is required', 'danger'); return; }
+  const pay    = HRMS.getPayroll();
+  pay.unshift({ id: Date.now(), empId, empName: emp.name, month, basic, hra, transport, medical, other:0, tax, pf, state:'draft' });
+  savePayroll_(pay);
+  closeModal('addModal');
+  HRMS.toast('Payroll record added ✓');
+  renderTable(); renderSummary();
+}
+
+renderSummary();
+renderTable();
+</script>
+</body>
+</html>

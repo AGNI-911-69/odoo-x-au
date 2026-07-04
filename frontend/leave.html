@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Leave / Time-Off — Enterprise HRMS</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Leave &amp; Time-Off</h1>
+          <p>Manage employee absence requests and personal leave balances.</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" onclick="openModal('applyModal')">+ Apply for Leave</button>
+        </div>
+      </div>
+
+      <!-- Leave Balance Cards -->
+      <div class="leave-balance-row" id="balanceRow"></div>
+
+      <!-- Two-col: Calendar + Pending Approvals -->
+      <div class="leave-grid">
+
+        <!-- Left: Calendar + Form -->
+        <div>
+          <div class="calendar-wrap card">
+            <div class="cal-header">
+              <div style="font-size:16px;font-weight:700">New Leave Request</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <button class="cal-nav" onclick="changeMonth(-1)">&#8249;</button>
+                <span id="calTitle" style="font-size:14px;font-weight:600;min-width:110px;text-align:center"></span>
+                <button class="cal-nav" onclick="changeMonth(1)">&#8250;</button>
+              </div>
+            </div>
+            <div class="cal-grid" id="calDayNames"></div>
+            <div class="cal-grid" id="calDays"></div>
+
+            <!-- Form below calendar -->
+            <div class="leave-form-section">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div>
+                  <label>Leave Type</label>
+                  <select id="leaveType" class="form-select">
+                    <option value="annual">Paid Annual Leave</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="unpaid">Unpaid Leave</option>
+                    <option value="casual">Casual Leave</option>
+                  </select>
+                </div>
+                <div></div>
+                <div>
+                  <label>From</label>
+                  <input type="date" id="leaveFrom" class="form-control" onchange="syncCalendar()"/>
+                </div>
+                <div>
+                  <label>To</label>
+                  <input type="date" id="leaveTo" class="form-control" onchange="syncCalendar()"/>
+                </div>
+              </div>
+              <div>
+                <label>Reason / Remarks</label>
+                <textarea id="leaveReason" class="form-control" rows="3"
+                  placeholder="Describe the reason for leave..." style="resize:vertical"></textarea>
+              </div>
+              <div class="leave-form-actions">
+                <button class="btn btn-primary" onclick="submitLeave()">Submit Request</button>
+                <button class="btn btn-outline" onclick="clearForm()">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- My Leave History -->
+          <div class="card" style="margin-top:20px">
+            <div class="panel-header">
+              <div class="panel-title">My Leave History</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th></tr>
+                </thead>
+                <tbody id="myLeaveTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Pending Approvals -->
+        <div>
+          <div class="card" id="approvalsPanel" style="display:none">
+            <div class="panel-header">
+              <div class="panel-title">Pending Approvals</div>
+              <span class="badge badge-pending" id="pendingCount"></span>
+            </div>
+            <div id="approvalList"></div>
+            <div style="margin-top:12px">
+              <a href="#" onclick="showAll();return false;"
+                 style="font-size:13px;color:var(--primary);font-weight:600">
+                View All Requests History →
+              </a>
+            </div>
+          </div>
+
+          <!-- All requests (for HR) -->
+          <div class="card" style="margin-top:16px" id="allRequestsPanel" style="display:none">
+            <div class="panel-header">
+              <div class="panel-title">All Leave Requests</div>
+              <select id="statusFilter" class="form-select" style="max-width:140px" onchange="renderAll()">
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="allLeaveTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Apply Modal (quick) -->
+<div class="modal-overlay" id="applyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Apply for Leave</div>
+      <button class="modal-close" onclick="closeModal('applyModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Leave Type</label>
+      <select id="mLeaveType" class="form-select">
+        <option value="annual">Paid Annual Leave</option>
+        <option value="sick">Sick Leave</option>
+        <option value="unpaid">Unpaid Leave</option>
+        <option value="casual">Casual Leave</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>From</label><input type="date" id="mLeaveFrom" class="form-control"/></div>
+      <div class="form-group"><label>To</label><input type="date" id="mLeaveTo" class="form-control"/></div>
+    </div>
+    <div class="form-group">
+      <label>Reason / Remarks</label>
+      <textarea id="mLeaveReason" class="form-control" rows="3" placeholder="Describe the reason for leave..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('applyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitModalLeave()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+HRMS.requireLogin();
+document.getElementById('sidebar').innerHTML = HRMS.renderSidebar('leave');
+document.getElementById('topbar').innerHTML  = HRMS.renderTopbar();
+
+const user  = HRMS.getUser();
+const isHR  = user && (user.roleKey === 'hr' || user.roleKey === 'admin');
+
+// ── Calendar state ────────────────────────────────────
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let selFrom  = null, selTo = null, picking = 'from';
+
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  document.getElementById('calTitle').textContent = months[calMonth] + ' ' + calYear;
+  const days = ['S','M','T','W','T','F','S'];
+  document.getElementById('calDayNames').innerHTML = days.map(d =>
+    `<div class="cal-day-name">${d}</div>`).join('');
+
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const total = new Date(calYear, calMonth + 1, 0).getDate();
+  const prevTotal = new Date(calYear, calMonth, 0).getDate();
+  let html = '';
+  for (let i = first - 1; i >= 0; i--)
+    html += `<div class="cal-day other-month">${prevTotal - i}</div>`;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  for (let d = 1; d <= total; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    let cls = 'cal-day';
+    if (ds === todayStr) cls += ' today';
+    if (selFrom && ds === selFrom) cls += ' selected';
+    if (selTo   && ds === selTo)   cls += ' selected';
+    if (selFrom && selTo && ds > selFrom && ds < selTo) cls += ' in-range';
+    html += `<div class="${cls}" onclick="pickDay('${ds}')">${d}</div>`;
+  }
+  const remaining = 42 - (first + total);
+  for (let d = 1; d <= remaining; d++)
+    html += `<div class="cal-day other-month">${d}</div>`;
+  document.getElementById('calDays').innerHTML = html;
+}
+
+function pickDay(ds) {
+  if (!selFrom || (selFrom && selTo)) { selFrom = ds; selTo = null; picking = 'to'; }
+  else if (ds < selFrom)             { selFrom = ds; selTo = null; picking = 'to'; }
+  else                               { selTo = ds; }
+  document.getElementById('leaveFrom').value = selFrom || '';
+  document.getElementById('leaveTo').value   = selTo   || '';
+  renderCalendar();
+}
+
+function syncCalendar() {
+  selFrom = document.getElementById('leaveFrom').value || null;
+  selTo   = document.getElementById('leaveTo').value   || null;
+  renderCalendar();
+}
+
+function changeMonth(dir) { calMonth += dir; if (calMonth > 11) { calMonth=0; calYear++; } if (calMonth < 0) { calMonth=11; calYear--; } renderCalendar(); }
+
+// ── Balance cards ─────────────────────────────────────
+function renderBalances() {
+  const emp    = HRMS.getEmployee(user.empId);
+  const leaves = HRMS.getLeaves().filter(l => l.empId === user.empId && l.status === 'approved');
+  const usedAnnual = leaves.filter(l => l.type === 'annual').reduce((s,l) => s + (l.days||0), 0);
+  const usedSick   = leaves.filter(l => l.type === 'sick').reduce((s,l)   => s + (l.days||0), 0);
+  const usedUnpaid = leaves.filter(l => l.type === 'unpaid').reduce((s,l) => s + (l.days||0), 0);
+  document.getElementById('balanceRow').innerHTML = `
+    <div class="balance-card">
+      <div class="bal-type">Annual</div>
+      <div class="bal-days">${18 - usedAnnual} Days</div>
+      <div class="bal-label">Paid Leave Balance</div>
+    </div>
+    <div class="balance-card">
+      <div class="bal-type">Sick</div>
+      <div class="bal-days" style="color:var(--danger)">${7 - usedSick} Days</div>
+      <div class="bal-label">Medical Leave Left</div>
+    </div>
+    <div class="balance-card">
+      <div class="bal-type">Personal</div>
+      <div class="bal-days" style="color:var(--warning)">${3 - usedUnpaid} Days</div>
+      <div class="bal-label">Unpaid Allotted</div>
+    </div>`;
+}
+
+// ── My leave history table ────────────────────────────
+function renderMyLeaves() {
+  const myLeaves = HRMS.getLeaves().filter(l => l.empId === user.empId);
+  const tbody = document.getElementById('myLeaveTable');
+  if (!myLeaves.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-sm)">No leave requests yet.</td></tr>'; return; }
+  tbody.innerHTML = myLeaves.map(l => `
+    <tr>
+      <td>${HRMS.badgeHtml(l.type, l.typeLabel)}</td>
+      <td>${l.dateFrom}</td><td>${l.dateTo}</td>
+      <td>${l.days}</td>
+      <td style="max-width:200px;font-size:12px;color:var(--text-sm)">${(l.reason||'').slice(0,60)}${l.reason?.length>60?'…':''}</td>
+      <td>${HRMS.badgeHtml(l.status)}</td>
+    </tr>`).join('');
+}
+
+// ── HR: Pending approvals panel ───────────────────────
+function renderApprovals() {
+  if (!isHR) return;
+  const pending = HRMS.getLeaves().filter(l => l.status === 'pending');
+  const panel   = document.getElementById('approvalsPanel');
+  panel.style.display = 'block';
+  document.getElementById('pendingCount').textContent = pending.length + ' Requests';
+  document.getElementById('approvalList').innerHTML = pending.length
+    ? pending.map(l => `
+      <div class="approval-card">
+        <div class="approval-top">
+          <div class="approval-person">
+            <div class="emp-avatar" style="background:${HRMS.getEmployee(l.empId)?.color||'#5B2D8E'};width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px">${HRMS.initials(l.empName)}</div>
+            <div><div class="approval-name">${l.empName}</div><div class="approval-role">${l.empJob}</div></div>
+          </div>
+          ${HRMS.badgeHtml(l.type, l.typeLabel)}
+        </div>
+        <div class="approval-reason">"${l.reason}"</div>
+        <div class="approval-dates">📅 ${l.dateFrom} – ${l.dateTo} (${l.days} Day${l.days>1?'s':''})</div>
+        <div class="approval-btns">
+          <button class="btn btn-primary btn-sm" onclick="approve(${l.id})">Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="reject(${l.id})" style="color:var(--danger);border-color:var(--danger)">Reject</button>
+        </div>
+      </div>`).join('')
+    : '<div style="text-align:center;padding:20px;color:var(--text-sm)">No pending requests 🎉</div>';
+}
+
+// ── HR: All requests table ────────────────────────────
+function renderAll() {
+  if (!isHR) return;
+  document.getElementById('allRequestsPanel').style.display = 'block';
+  const filter = document.getElementById('statusFilter').value;
+  const all = HRMS.getLeaves().filter(l => !filter || l.status === filter);
+  document.getElementById('allLeaveTable').innerHTML = all.map(l => `
+    <tr>
+      <td><div class="emp-cell">
+        <div class="emp-avatar" style="background:${HRMS.getEmployee(l.empId)?.color||'#5B2D8E'}">${HRMS.initials(l.empName)}</div>
+        <div><div class="emp-name">${l.empName}</div><div class="emp-role">${l.empJob}</div></div>
+      </div></td>
+      <td>${HRMS.badgeHtml(l.type, l.typeLabel)}</td>
+      <td style="font-size:13px">${l.dateFrom} – ${l.dateTo}</td>
+      <td>${l.days}</td>
+      <td>${HRMS.badgeHtml(l.status)}</td>
+      <td>
+        ${l.status==='pending' ? `
+          <button class="btn btn-sm btn-success" onclick="approve(${l.id})">✓</button>
+          <button class="btn btn-sm btn-danger"  onclick="reject(${l.id})" style="margin-left:4px">✕</button>
+        ` : '<span style="color:var(--text-sm);font-size:12px">—</span>'}
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-sm)">No records.</td></tr>';
+}
+
+function showAll() { document.getElementById('allRequestsPanel').scrollIntoView({behavior:'smooth'}); }
+
+// ── Actions ───────────────────────────────────────────
+function approve(id) { HRMS.approveLeave(id); HRMS.toast('Leave approved ✓'); renderApprovals(); renderAll(); renderMyLeaves(); renderBalances(); }
+function reject(id)  { HRMS.rejectLeave(id);  HRMS.toast('Leave rejected', 'danger'); renderApprovals(); renderAll(); renderMyLeaves(); renderBalances(); }
+
+function submitLeave() {
+  const from   = document.getElementById('leaveFrom').value;
+  const to     = document.getElementById('leaveTo').value;
+  const type   = document.getElementById('leaveType').value;
+  const reason = document.getElementById('leaveReason').value.trim();
+  if (!from || !to) { HRMS.toast('Please select a date range', 'danger'); return; }
+  if (to < from)    { HRMS.toast('End date must be after start date', 'danger'); return; }
+  const days = Math.ceil((new Date(to) - new Date(from)) / 86400000) + 1;
+  const typeLabels = { annual:'Annual', sick:'Sick', unpaid:'Unpaid', casual:'Casual' };
+  HRMS.addLeave({ empId: user.empId, empName: user.name, empJob: user.role,
+                  type, typeLabel: typeLabels[type], dateFrom: from, dateTo: to,
+                  days, reason, status: 'pending' });
+  HRMS.toast('Leave request submitted ✓');
+  clearForm();
+  renderMyLeaves(); renderApprovals(); renderAll(); renderBalances();
+}
+
+function submitModalLeave() {
+  const from   = document.getElementById('mLeaveFrom').value;
+  const to     = document.getElementById('mLeaveTo').value;
+  const type   = document.getElementById('mLeaveType').value;
+  const reason = document.getElementById('mLeaveReason').value.trim();
+  if (!from || !to) { HRMS.toast('Please select dates', 'danger'); return; }
+  const days = Math.ceil((new Date(to) - new Date(from)) / 86400000) + 1;
+  const typeLabels = { annual:'Annual', sick:'Sick', unpaid:'Unpaid', casual:'Casual' };
+  HRMS.addLeave({ empId: user.empId, empName: user.name, empJob: user.role,
+                  type, typeLabel: typeLabels[type], dateFrom: from, dateTo: to,
+                  days, reason, status: 'pending' });
+  closeModal('applyModal');
+  HRMS.toast('Leave request submitted ✓');
+  renderMyLeaves(); renderApprovals(); renderAll(); renderBalances();
+}
+
+function clearForm() {
+  selFrom = selTo = null;
+  document.getElementById('leaveFrom').value = '';
+  document.getElementById('leaveTo').value   = '';
+  document.getElementById('leaveReason').value = '';
+  renderCalendar();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── Init ──────────────────────────────────────────────
+renderCalendar();
+renderBalances();
+renderMyLeaves();
+renderApprovals();
+renderAll();
+</script>
+</body>
+</html>

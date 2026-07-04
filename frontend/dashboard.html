@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dashboard — Enterprise HRMS</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-content" id="content"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+<script>
+HRMS.requireLogin();
+
+const user   = HRMS.getUser();
+const emps   = HRMS.getEmployees();
+const att    = HRMS.getAttendance();
+const leaves = HRMS.getLeaves();
+const pay    = HRMS.getPayroll();
+const acts   = HRMS.getActivity();
+
+document.getElementById('sidebar').innerHTML = HRMS.renderSidebar('dashboard');
+document.getElementById('topbar').innerHTML  = HRMS.renderTopbar();
+
+const today   = new Date().toISOString().slice(0,10);
+const todayAtt= att.filter(a => a.date === today);
+const present = todayAtt.filter(a => a.status === 'present' || a.status === 'half_day').length;
+const pending = leaves.filter(l => l.status === 'pending');
+
+function render() {
+  const pendingRows = pending.map(l => `
+    <tr>
+      <td>
+        <div class="emp-cell">
+          <div class="emp-avatar" style="background:${HRMS.getEmployee(l.empId)?.color||'#5B2D8E'}">${HRMS.initials(l.empName)}</div>
+          <div><div class="emp-name">${l.empName}</div><div class="emp-role">${l.empJob}</div></div>
+        </div>
+      </td>
+      <td>${HRMS.badgeHtml(l.type, l.typeLabel)}</td>
+      <td style="font-size:13px">${l.dateFrom} – ${l.dateTo}<br/><span style="color:var(--text-sm)">${l.days} Day${l.days>1?'s':''}</span></td>
+      <td>
+        <button class="btn btn-sm btn-danger"   onclick="reject(${l.id})">✕</button>
+        <button class="btn btn-sm btn-success"  onclick="approve(${l.id})" style="margin-left:4px">✓</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--text-sm);padding:24px">No pending requests 🎉</td></tr>`;
+
+  const activityHtml = acts.map(a => `
+    <div class="activity-item">
+      <div class="activity-dot ${a.cls}">${a.icon}</div>
+      <div>
+        <div class="activity-text">${a.text}</div>
+        <div class="activity-desc">${a.desc}</div>
+        <div class="activity-time">${a.time}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Dashboard Overview</h1>
+        <p>Welcome back, ${user.name.split(' ')[0]}. Here is what's happening today in the organization.</p>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-label">Total Employees</div>
+        <div class="kpi-value">${emps.length}</div>
+        <div class="kpi-sub up">↑ +12%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-label">Present Today</div>
+        <div class="kpi-value">${present}</div>
+        <div class="kpi-sub">94% rate</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-label">Pending Requests</div>
+        <div class="kpi-value">${pending.length}</div>
+        ${pending.length > 0 ? '<div class="kpi-sub warn">⚠ ACTION REQUIRED</div>' : '<div class="kpi-sub up">All clear</div>'}
+      </div>
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-icon">🎂</div>
+        <div class="kpi-label">Upcoming Birthdays</div>
+        <div class="kpi-value">4 Today</div>
+        <div class="kpi-sub"><a href="#" style="color:rgba(255,255,255,.8);text-decoration:underline">Send Wishes</a></div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="card">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Pending Leave Approvals</div>
+            <div class="panel-sub">Review and manage recent time-off requests.</div>
+          </div>
+          <a href="leave.html" class="panel-link">View All Requests →</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Actions</th></tr></thead>
+            <tbody id="leaveTable">${pendingRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="panel-header">
+          <div class="panel-title">Recent Activity</div>
+        </div>
+        <div class="activity-list">${activityHtml}</div>
+        <div style="margin-top:20px">
+          <button class="btn btn-outline" style="width:100%">View Full Audit Log</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function approve(id) {
+  HRMS.approveLeave(id);
+  HRMS.toast('Leave request approved ✓');
+  location.reload();
+}
+function reject(id) {
+  HRMS.rejectLeave(id);
+  HRMS.toast('Leave request rejected', 'danger');
+  location.reload();
+}
+
+render();
+</script>
+</body>
+</html>
