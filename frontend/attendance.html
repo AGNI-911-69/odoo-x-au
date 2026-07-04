@@ -19,23 +19,24 @@
           <p>Track, monitor, and manage organizational attendance records.</p>
         </div>
         <div class="page-header-actions">
-          <button class="btn btn-primary" id="checkInBtn" onclick="doCheckIn()">→ Check In</button>
+          <button class="btn btn-primary" id="checkInBtn">→ Check In</button>
+          <button class="btn btn-outline" id="checkOutBtn">← Check Out</button>
           <button class="btn btn-outline" onclick="exportCSV()">↓ Export CSV</button>
         </div>
       </div>
 
-      <div class="kpi-grid" id="attKPIs"></div>
+      <div class="kpi-grid" id="kpiGrid"></div>
 
       <div class="card" style="margin-bottom:20px">
         <div class="toolbar" style="margin-bottom:0">
-          <input type="date" class="form-control" id="dateFilter" style="max-width:180px" onchange="renderTable()"/>
-          <select class="form-select" id="deptFilter" style="max-width:180px" onchange="renderTable()">
+          <input type="date" class="form-control" id="dateFilter" style="max-width:180px" onchange="loadTable()"/>
+          <select class="form-select" id="deptFilter" style="max-width:200px" onchange="loadTable()">
             <option value="">All Departments</option>
           </select>
           <div style="flex:1"></div>
           <div class="view-toggle">
-            <button id="btnDaily"  class="active" onclick="setView('daily')">Daily</button>
-            <button id="btnWeekly"         onclick="setView('weekly')">Weekly</button>
+            <button id="btnDaily" class="active" onclick="setView('daily')">Daily</button>
+            <button id="btnWeekly" onclick="setView('weekly')">Weekly</button>
           </div>
         </div>
       </div>
@@ -45,15 +46,13 @@
           <table>
             <thead>
               <tr>
-                <th>Employee</th>
-                <th>Check-In</th>
-                <th>Check-Out</th>
-                <th>Work Hours</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>Employee</th><th>Check-In</th><th>Check-Out</th>
+                <th>Work Hours</th><th>Status</th><th>Action</th>
               </tr>
             </thead>
-            <tbody id="attTable"></tbody>
+            <tbody id="attTable">
+              <tr><td colspan="6" class="loading-row">Loading…</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -64,29 +63,23 @@
           <div class="panel-header">
             <div>
               <div class="panel-title">Attendance Insights</div>
-              <div class="panel-sub">Average punctuality has increased by <span style="color:var(--success);font-weight:700">8.4%</span> this week.</div>
+              <div class="panel-sub" id="insightSub">This week's attendance overview.</div>
             </div>
           </div>
           <div id="barChart" style="display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:10px"></div>
-          <div style="display:flex;gap:10px;margin-top:8px">
-            <span style="font-size:12px;color:var(--text-sm);flex:1;text-align:center">Mon</span>
-            <span style="font-size:12px;color:var(--text-sm);flex:1;text-align:center">Tue</span>
-            <span style="font-size:12px;color:var(--text-sm);flex:1;text-align:center">Wed</span>
-            <span style="font-size:12px;color:var(--text-sm);flex:1;text-align:center">Thu</span>
-            <span style="font-size:12px;color:var(--text-sm);flex:1;text-align:center">Fri</span>
-          </div>
+          <div style="display:flex;gap:10px;margin-top:8px" id="barLabels"></div>
         </div>
         <div class="card" style="background:var(--primary);color:#fff">
-          <div style="font-size:17px;font-weight:700;margin-bottom:12px">Admin Notice</div>
+          <div style="font-size:17px;font-weight:700;margin-bottom:12px">📢 Admin Notice</div>
           <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:14px;margin-bottom:10px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-bottom:6px">Coming Up</div>
-            <div style="font-size:13px">Holiday: Labor Day is approaching. System will auto-mark 'Holiday'.</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-bottom:6px">Reminder</div>
+            <div style="font-size:13px">Ensure all attendance records are updated by end of day.</div>
           </div>
           <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:14px;margin-bottom:14px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-bottom:6px">Policy Update</div>
-            <div style="font-size:13px">Core work hours are now 10:00 AM – 4:00 PM for all flexible roles.</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.6);margin-bottom:6px">Policy</div>
+            <div style="font-size:13px">Core work hours: 10:00 AM – 4:00 PM for all flexible roles.</div>
           </div>
-          <button class="btn" style="background:#fff;color:var(--primary);width:100%;font-weight:700">Update Policy</button>
+          <button class="btn" style="background:#fff;color:var(--primary);width:100%;font-weight:700" onclick="window.location.href='leave.html'">View Leave Requests</button>
         </div>
       </div>
 
@@ -94,115 +87,159 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="app.js"></script>
-<script>
-HRMS.requireLogin();
-document.getElementById('sidebar').innerHTML = HRMS.renderSidebar('attendance');
-document.getElementById('topbar').innerHTML  = HRMS.renderTopbar();
+<script type="module">
+import { Auth, get, post, badge, avatar, formatHours, toast, renderSidebar, renderTopbar } from './api.js';
 
-const today = new Date().toISOString().slice(0,10);
+Auth.requireLogin();
+document.getElementById('sidebar').innerHTML = renderSidebar('attendance');
+document.getElementById('topbar').innerHTML  = renderTopbar();
+
+const isHR = Auth.isHR();
+const user = Auth.user();
+const today = new Date().toISOString().slice(0, 10);
 document.getElementById('dateFilter').value = today;
 
-// Populate dept filter
-const depts = [...new Set(HRMS.getEmployees().map(e => e.dept))];
-const dSel  = document.getElementById('deptFilter');
-depts.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; dSel.appendChild(o); });
+// Populate dept filter from employees
+async function loadDepts() {
+  if (!isHR) return;
+  try {
+    const emps = await get('/employees');
+    const depts = [...new Set(emps.map(e => e.dept).filter(Boolean))].sort();
+    const sel = document.getElementById('deptFilter');
+    depts.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o); });
+  } catch(e) {}
+}
 
-function renderKPIs() {
-  const att  = HRMS.getAttendance();
+async function loadKPIs() {
+  try {
+    const s = await get('/stats');
+    document.getElementById('kpiGrid').innerHTML = `
+      <div class="kpi-card"><div class="kpi-icon">✅</div><div class="kpi-label">Present Today</div><div class="kpi-value">${s.present + s.halfday}</div><div class="kpi-sub">/ ${s.totalEmp}</div></div>
+      <div class="kpi-card"><div class="kpi-icon">❌</div><div class="kpi-label">Absent</div><div class="kpi-value">${s.absent}</div></div>
+      <div class="kpi-card"><div class="kpi-icon">🏖️</div><div class="kpi-label">On Leave</div><div class="kpi-value">${s.onLeave}</div></div>
+      <div class="kpi-card"><div class="kpi-icon">⏰</div><div class="kpi-label">Late Arrivals</div><div class="kpi-value">${s.lateArrivals}</div></div>`;
+  } catch(e) {}
+}
+
+window.loadTable = async function() {
   const date = document.getElementById('dateFilter').value;
-  const day  = att.filter(a => a.date === date);
-  const presentN  = day.filter(a => a.status === 'present').length;
-  const halfN     = day.filter(a => a.status === 'half_day').length;
-  const absentN   = day.filter(a => a.status === 'absent').length;
-  const onleaveN  = day.filter(a => a.status === 'on_leave').length;
-  const total     = HRMS.getEmployees().length;
-  document.getElementById('attKPIs').innerHTML = `
-    <div class="kpi-card"><div class="kpi-icon">✅</div><div class="kpi-label">Present Today</div><div class="kpi-value">${presentN + halfN}</div><div class="kpi-sub">/ ${total}</div></div>
-    <div class="kpi-card"><div class="kpi-icon">❌</div><div class="kpi-label">Absent</div><div class="kpi-value">${absentN}</div></div>
-    <div class="kpi-card"><div class="kpi-icon">🏖️</div><div class="kpi-label">On Leave</div><div class="kpi-value">${onleaveN}</div></div>
-    <div class="kpi-card"><div class="kpi-icon">⏰</div><div class="kpi-label">Late Arrivals</div><div class="kpi-value">${halfN}</div></div>
-  `;
+  const dept = document.getElementById('deptFilter').value;
+  document.getElementById('attTable').innerHTML = '<tr><td colspan="6" class="loading-row">Loading…</td></tr>';
+  try {
+    const params = new URLSearchParams({ date });
+    if (!isHR) params.set('emp_id', user.id);
+    const rows = await get('/attendance?' + params);
+
+    // For HR: also get all employees to show absent ones
+    let emps = [];
+    if (isHR) emps = await get('/employees');
+
+    if (isHR) {
+      const filtered = dept ? emps.filter(e => e.dept === dept) : emps;
+      document.getElementById('attTable').innerHTML = filtered.map(e => {
+        const rec = rows.find(r => r.emp_id === e.id);
+        return buildRow(e, rec);
+      }).join('') || '<tr><td colspan="6" class="loading-row">No records.</td></tr>';
+    } else {
+      document.getElementById('attTable').innerHTML = rows.length
+        ? rows.map(r => buildRow({ id:r.emp_id, name:r.emp_name, job:r.emp_job, color:r.emp_color }, r)).join('')
+        : '<tr><td colspan="6" class="loading-row">No attendance records for this date.</td></tr>';
+    }
+  } catch(e) { toast(e.message, 'danger'); }
+};
+
+function buildRow(emp, rec) {
+  const ci  = rec?.check_in  || '--:--';
+  const co  = rec?.check_out || '--:--';
+  const hrs = formatHours(rec?.hours || 0);
+  const st  = rec?.status    || 'absent';
+  const canIn  = !rec || !rec.check_in;
+  const canOut = rec?.check_in && !rec?.check_out;
+  return `<tr>
+    <td><div class="emp-cell">
+      ${avatar(emp.name, emp.color)}
+      <div><div class="emp-name">${emp.name}</div><div class="emp-role">${emp.job||''}</div></div>
+    </div></td>
+    <td style="font-weight:600">${ci}</td>
+    <td style="font-weight:600">${co}</td>
+    <td style="font-weight:700">${hrs}</td>
+    <td>${badge(st)}</td>
+    <td>
+      ${canIn  ? `<button class="btn btn-sm btn-primary"  onclick="doCheckIn(${emp.id})">Check In</button>` : ''}
+      ${canOut ? `<button class="btn btn-sm btn-outline" onclick="doCheckOut(${emp.id})">Check Out</button>` : ''}
+      ${!canIn && !canOut ? '<span style="color:var(--text-sm);font-size:12px">Done</span>' : ''}
+    </td>
+  </tr>`;
 }
 
-function renderTable() {
-  renderKPIs();
-  const att   = HRMS.getAttendance();
-  const date  = document.getElementById('dateFilter').value;
-  const dept  = document.getElementById('deptFilter').value;
-  const emps  = HRMS.getEmployees();
+window.doCheckIn = async (empId) => {
+  try {
+    const body = isHR ? { emp_id: empId } : {};
+    const r = await post('/attendance/checkin', body);
+    toast(`Checked in at ${r.check_in} ✓`);
+    loadTable(); loadKPIs();
+  } catch(e) { toast(e.message, 'danger'); }
+};
 
-  const rows = emps.filter(e => !dept || e.dept === dept).map(e => {
-    const rec = att.find(a => a.empId === e.id && a.date === date);
-    const ci  = rec?.checkIn  || '--:--';
-    const co  = rec?.checkOut || '--:--';
-    const hrs = rec?.hours    || '0h 00m';
-    const st  = rec?.status   || 'absent';
-    return `<tr>
-      <td><div class="emp-cell">
-        <div class="emp-avatar" style="background:${e.color}">${HRMS.initials(e.name)}</div>
-        <div><div class="emp-name">${e.name}</div><div class="emp-role">${e.job}</div></div>
-      </div></td>
-      <td style="font-weight:600">${ci}</td>
-      <td style="font-weight:600">${co}</td>
-      <td style="font-weight:700">${hrs}</td>
-      <td>${HRMS.badgeHtml(st)}</td>
-      <td>
-        ${(!rec || ci === '--:--') ? `<button class="btn btn-sm btn-primary" onclick="checkin(${e.id})">Check In</button>` :
-          co === '--:--' ? `<button class="btn btn-sm btn-outline" onclick="checkout(${e.id})">Check Out</button>` :
-          '<span style="color:var(--text-sm);font-size:12px">Done</span>'}
-      </td>
-    </tr>`;
-  }).join('');
-  document.getElementById('attTable').innerHTML = rows;
-}
+window.doCheckOut = async (empId) => {
+  try {
+    const body = isHR ? { emp_id: empId } : {};
+    const r = await post('/attendance/checkout', body);
+    toast(`Checked out at ${r.check_out} ✓`);
+    loadTable(); loadKPIs();
+  } catch(e) { toast(e.message, 'danger'); }
+};
 
-function setView(v) {
-  document.getElementById('btnDaily').classList.toggle('active', v === 'daily');
-  document.getElementById('btnWeekly').classList.toggle('active', v === 'weekly');
-  HRMS.toast(v === 'weekly' ? 'Showing weekly view' : 'Showing daily view');
-  renderTable();
-}
+// Top Check In/Out buttons for current user
+document.getElementById('checkInBtn').onclick  = () => doCheckIn(user.id);
+document.getElementById('checkOutBtn').onclick = () => doCheckOut(user.id);
 
-function checkin(empId) {
-  const t = HRMS.checkIn(empId);
-  HRMS.toast(`Checked in at ${t} ✓`);
-  renderTable();
-}
-function checkout(empId) {
-  const t = HRMS.checkOut(empId);
-  HRMS.toast(`Checked out at ${t} ✓`);
-  renderTable();
-}
-function doCheckIn() {
-  const user = HRMS.getUser();
-  if (user?.empId) checkin(user.empId);
-  else HRMS.toast('No linked employee for your account', 'danger');
-}
-function exportCSV() {
-  const att  = HRMS.getAttendance();
-  const emps = HRMS.getEmployees();
-  const rows = [['Employee','Date','Check-In','Check-Out','Hours','Status']];
-  att.forEach(a => {
-    const e = emps.find(x => x.id === a.empId);
-    rows.push([e?.name||'', a.date, a.checkIn, a.checkOut, a.hours, a.status]);
-  });
-  const csv  = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const a    = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'attendance.csv'; a.click();
-  HRMS.toast('CSV exported ✓');
+window.setView = (v) => {
+  document.getElementById('btnDaily').classList.toggle('active', v==='daily');
+  document.getElementById('btnWeekly').classList.toggle('active', v==='weekly');
+  toast(v === 'weekly' ? 'Weekly view — filter by date range' : 'Daily view');
+};
+
+window.exportCSV = async () => {
+  try {
+    const date = document.getElementById('dateFilter').value;
+    const rows = await get('/attendance?date=' + date);
+    const csv  = ['Employee,Date,Check-In,Check-Out,Hours,Status',
+      ...rows.map(r => `${r.emp_name},${r.date},${r.check_in||''},${r.check_out||''},${r.hours||0},${r.status}`)
+    ].join('\n');
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})), download: `attendance-${date}.csv` });
+    a.click();
+    toast('CSV exported ✓');
+  } catch(e) { toast(e.message, 'danger'); }
+};
+
+// Weekly bar chart from real data
+async function loadWeeklyChart() {
+  try {
+    const days = ['Mon','Tue','Wed','Thu','Fri'];
+    const counts = [];
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun
+    for (let i = 1; i <= 5; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - dayOfWeek + i);
+      const ds = d.toISOString().slice(0,10);
+      const att = await get('/attendance?date=' + ds);
+      counts.push(att.filter(a => a.status === 'present' || a.status === 'half_day').length);
+    }
+    const maxC = Math.max(...counts, 1);
+    document.getElementById('barChart').innerHTML = counts.map((v, i) => `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+        <div style="width:100%;background:${i===dayOfWeek-1?'var(--primary)':'#d8c8ee'};border-radius:6px 6px 0 0;height:${Math.max((v/maxC)*100,4)}px;transition:height .4s"></div>
+      </div>`).join('');
+    document.getElementById('barLabels').innerHTML = days.map(d => `<span style="font-size:12px;color:var(--text-sm);flex:1;text-align:center">${d}</span>`).join('');
+  } catch(e) {}
 }
 
-// Bar chart
-const bars = [72, 78, 84, 92, 80];
-const maxB = Math.max(...bars);
-document.getElementById('barChart').innerHTML = bars.map((v, i) => `
-  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-    <div style="width:100%;background:${i===3?'var(--primary)':'#d8c8ee'};border-radius:6px 6px 0 0;height:${(v/maxB)*100}px;transition:height .4s"></div>
-  </div>`).join('');
-
-renderTable();
+loadDepts();
+loadKPIs();
+loadTable();
+loadWeeklyChart();
 </script>
 </body>
 </html>

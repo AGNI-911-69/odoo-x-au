@@ -341,3 +341,12 @@ tbody tr:hover { background: var(--primary-lt); }
   .main    { margin-left: 0; }
   .kpi-grid{ grid-template-columns: 1fr 1fr; }
 }
+
+/* ── Additional styles ─────────────────────────────── */
+.loading-row { text-align:center; color:var(--text-sm); padding:24px; }
+.skeleton    { background:linear-gradient(90deg,#f0edf8 25%,#e8e1f5 50%,#f0edf8 75%);
+               background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:var(--radius); }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.badge-hr       { background:#e3f0fb; color:#1a5c8a; }
+.badge-admin    { background:#ede8f8; color:var(--primary); }
+.badge-employee { background:#f0f0f0; color:#555; }

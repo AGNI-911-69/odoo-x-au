@@ -18,18 +18,15 @@
           <h1>Employees</h1>
           <p>Manage and view organizational hierarchy</p>
         </div>
-        <div class="page-header-actions">
-          <button class="btn btn-outline" onclick="openFilter()">⚙ Filter</button>
-          <button class="btn btn-primary" onclick="openAddModal()">👤 Add Employee</button>
-        </div>
+        <div class="page-header-actions" id="hrActions"></div>
       </div>
 
       <div class="toolbar">
-        <input type="text" class="form-control" id="searchInput" placeholder="Search employees, departments..." oninput="renderCards()" style="max-width:280px"/>
-        <select class="form-select" id="deptFilter" onchange="renderCards()" style="max-width:200px">
+        <input class="form-control" id="searchInput" placeholder="Search name, department, job…" oninput="filterCards()" style="max-width:280px"/>
+        <select class="form-select" id="deptFilter" onchange="filterCards()" style="max-width:200px">
           <option value="">All Departments</option>
         </select>
-        <select class="form-select" id="statusFilter" onchange="renderCards()" style="max-width:160px">
+        <select class="form-select" id="statusFilter" onchange="filterCards()" style="max-width:160px">
           <option value="">All Status</option>
           <option value="present">Present</option>
           <option value="absent">Absent</option>
@@ -38,40 +35,45 @@
         </select>
       </div>
 
-      <div class="emp-kanban" id="empGrid"></div>
+      <div class="emp-kanban" id="empGrid">
+        <div class="loading-row" style="width:100%">Loading employees…</div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<!-- Add Employee Modal -->
+<!-- Add Employee Modal (HR only) -->
 <div class="modal-overlay" id="addModal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">Add New Employee</div>
       <button class="modal-close" onclick="closeModal('addModal')">✕</button>
     </div>
-    <div class="form-group"><label>Full Name *</label><input id="newName" class="form-control" placeholder="John Doe"/></div>
-    <div class="form-group"><label>Email *</label><input id="newEmail" class="form-control" type="email" placeholder="john@company.com"/></div>
-    <div class="form-group"><label>Job Title</label><input id="newJob" class="form-control" placeholder="Software Engineer"/></div>
-    <div class="form-group"><label>Department</label><input id="newDept" class="form-control" placeholder="Engineering"/></div>
-    <div class="form-group"><label>Phone</label><input id="newPhone" class="form-control" placeholder="+1-555-0000"/></div>
-    <div class="form-group">
-      <label>Role</label>
-      <select id="newRole" class="form-select">
+    <div class="form-group"><label>Full Name *</label><input id="nName" class="form-control" placeholder="Jane Doe"/></div>
+    <div class="form-group"><label>Email *</label><input id="nEmail" class="form-control" type="email" placeholder="jane@company.com"/></div>
+    <div class="form-group"><label>Password *</label><input id="nPass" class="form-control" type="password" placeholder="min 6 chars"/></div>
+    <div class="form-group"><label>Job Title</label><input id="nJob" class="form-control" placeholder="Software Engineer"/></div>
+    <div class="form-group"><label>Department</label><input id="nDept" class="form-control" placeholder="Engineering"/></div>
+    <div class="form-group"><label>Phone</label><input id="nPhone" class="form-control" placeholder="+1-555-0000"/></div>
+    <div class="form-group"><label>Role</label>
+      <select id="nRole" class="form-select">
         <option value="employee">Employee</option>
         <option value="hr">HR Officer</option>
         <option value="admin">Admin</option>
       </select>
     </div>
-    <div class="form-group"><label>Basic Salary</label><input id="newSalary" class="form-control" type="number" placeholder="50000"/></div>
+    <div class="form-group"><label>Basic Salary</label><input id="nSalary" class="form-control" type="number" min="0" placeholder="50000"/></div>
+    <div class="form-group"><label>Date Joined</label><input id="nJoined" class="form-control" type="date"/></div>
+    <div id="addErr" style="color:var(--danger);font-size:13px;margin-bottom:8px;display:none"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('addModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveEmployee()">Save Employee</button>
+      <button class="btn btn-primary" id="saveEmpBtn" onclick="saveEmployee()">Save Employee</button>
     </div>
   </div>
 </div>
 
-<!-- View Employee Modal -->
+<!-- View/Edit Employee Modal -->
 <div class="modal-overlay" id="viewModal">
   <div class="modal">
     <div class="modal-header">
@@ -83,97 +85,131 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="app.js"></script>
-<script>
-HRMS.requireLogin();
-document.getElementById('sidebar').innerHTML = HRMS.renderSidebar('employees');
-document.getElementById('topbar').innerHTML  = HRMS.renderTopbar();
+<script type="module">
+import { Auth, get, post, put, badge, avatar, initials, toast, renderSidebar, renderTopbar } from './api.js';
 
-// populate dept filter
-const depts = [...new Set(HRMS.getEmployees().map(e => e.dept))];
-const deptSel = document.getElementById('deptFilter');
-depts.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; deptSel.appendChild(o); });
+Auth.requireLogin();
+document.getElementById('sidebar').innerHTML = renderSidebar('employees');
+document.getElementById('topbar').innerHTML  = renderTopbar();
 
-function renderCards() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const dept   = document.getElementById('deptFilter').value;
-  const status = document.getElementById('statusFilter').value;
-  let emps = HRMS.getEmployees().filter(e => {
-    if (search && !e.name.toLowerCase().includes(search) && !e.dept.toLowerCase().includes(search) && !e.job.toLowerCase().includes(search)) return false;
-    if (dept   && e.dept   !== dept)   return false;
-    if (status && e.status !== status) return false;
-    return true;
-  });
+const isHR = Auth.isHR();
+let allEmployees = [];
 
+if (isHR) {
+  document.getElementById('hrActions').innerHTML =
+    '<button class="btn btn-outline" onclick="openModal(\'addModal\')">⚙ Filter</button>' +
+    '<button class="btn btn-primary" onclick="openModal(\'addModal\')">👤 Add Employee</button>';
+}
+
+async function loadEmployees() {
+  try {
+    allEmployees = await get('/employees');
+    // populate dept filter
+    const depts = [...new Set(allEmployees.map(e => e.dept).filter(Boolean))].sort();
+    const sel   = document.getElementById('deptFilter');
+    sel.innerHTML = '<option value="">All Departments</option>' +
+      depts.map(d => `<option value="${d}">${d}</option>`).join('');
+    renderCards(allEmployees);
+  } catch(e) { toast('Failed to load employees', 'danger'); }
+}
+
+function renderCards(emps) {
+  if (!emps.length) {
+    document.getElementById('empGrid').innerHTML =
+      '<div style="padding:40px;color:var(--text-sm);text-align:center;width:100%">No employees found.</div>';
+    return;
+  }
   document.getElementById('empGrid').innerHTML = emps.map(e => `
     <div class="emp-card" onclick="viewEmployee(${e.id})">
       <div class="emp-card-top">
-        <div>
-          <div class="emp-photo" style="background:${e.color}">${HRMS.initials(e.name)}</div>
-        </div>
-        <div>${HRMS.badgeHtml(e.status)}</div>
+        ${avatar(e.name, e.color, 54)}
+        ${badge(e.status)}
       </div>
       <div class="emp-card-name">${e.name}</div>
-      <div class="emp-card-job">${e.job}</div>
-      <div class="emp-card-dept">${e.dept}</div>
+      <div class="emp-card-job">${e.job || '—'}</div>
+      <div class="emp-card-dept">${e.dept || '—'}</div>
       <div class="emp-card-footer">
         <div><div class="emp-meta-label">Employee ID</div><div class="emp-meta-val">${e.code}</div></div>
-        <div style="text-align:right"><div class="emp-meta-label">Joined</div><div class="emp-meta-val">${e.joined}</div></div>
+        <div style="text-align:right"><div class="emp-meta-label">Joined</div><div class="emp-meta-val">${e.joined || '—'}</div></div>
       </div>
-    </div>
-  `).join('') || '<div style="padding:40px;color:var(--text-sm);text-align:center;width:100%">No employees found.</div>';
+    </div>`).join('');
 }
 
-function viewEmployee(id) {
-  const e = HRMS.getEmployee(id);
-  const user = HRMS.getUser();
-  const isHR = user && (user.roleKey === 'hr' || user.roleKey === 'admin');
-  document.getElementById('viewContent').innerHTML = `
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
-      <div class="emp-photo" style="background:${e.color};width:64px;height:64px;font-size:22px">${HRMS.initials(e.name)}</div>
-      <div>
-        <div style="font-size:20px;font-weight:800">${e.name}</div>
-        <div style="color:var(--text-sm)">${e.job}</div>
-        <div style="color:var(--primary);font-size:13px;font-weight:600">${e.dept}</div>
-      </div>
-    </div>
-    <table style="width:100%;font-size:14px">
-      <tr><td style="padding:6px 0;color:var(--text-sm);width:40%">Employee ID</td><td><strong>${e.code}</strong></td></tr>
-      <tr><td style="padding:6px 0;color:var(--text-sm)">Email</td><td>${e.email}</td></tr>
-      <tr><td style="padding:6px 0;color:var(--text-sm)">Phone</td><td>${e.phone}</td></tr>
-      <tr><td style="padding:6px 0;color:var(--text-sm)">Status</td><td>${HRMS.badgeHtml(e.status)}</td></tr>
-      <tr><td style="padding:6px 0;color:var(--text-sm)">Role</td><td>${e.role}</td></tr>
-      <tr><td style="padding:6px 0;color:var(--text-sm)">Date Joined</td><td>${e.joined}</td></tr>
-      ${isHR ? `<tr><td style="padding:6px 0;color:var(--text-sm)">Salary</td><td><strong>$${e.salary.toLocaleString()}</strong></td></tr>` : ''}
-    </table>`;
-  openModal('viewModal');
-}
-
-function openAddModal()  { openModal('addModal'); }
-function openFilter()    { HRMS.toast('Use the search and filter dropdowns above', 'success'); }
-function openModal(id)   { document.getElementById(id).classList.add('open'); }
-function closeModal(id)  { document.getElementById(id).classList.remove('open'); }
-
-function saveEmployee() {
-  const name = document.getElementById('newName').value.trim();
-  const email= document.getElementById('newEmail').value.trim();
-  if (!name || !email) { HRMS.toast('Name and email are required', 'danger'); return; }
-  HRMS.addEmployee({
-    name, email,
-    job:    document.getElementById('newJob').value,
-    dept:   document.getElementById('newDept').value,
-    phone:  document.getElementById('newPhone').value,
-    role:   document.getElementById('newRole').value,
-    salary: parseFloat(document.getElementById('newSalary').value) || 0,
-    status: 'absent',
-    joined: new Date().toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}),
+window.filterCards = function() {
+  const s = document.getElementById('searchInput').value.toLowerCase();
+  const d = document.getElementById('deptFilter').value;
+  const st = document.getElementById('statusFilter').value;
+  const filtered = allEmployees.filter(e => {
+    if (s && !e.name.toLowerCase().includes(s) && !(e.dept||'').toLowerCase().includes(s) && !(e.job||'').toLowerCase().includes(s)) return false;
+    if (d  && e.dept !== d)   return false;
+    if (st && e.status !== st) return false;
+    return true;
   });
-  closeModal('addModal');
-  HRMS.toast('Employee added successfully ✓');
-  renderCards();
-}
+  renderCards(filtered);
+};
 
-renderCards();
+window.onGlobalSearch = (val) => {
+  document.getElementById('searchInput').value = val;
+  window.filterCards();
+};
+
+window.viewEmployee = async (id) => {
+  try {
+    const e = await get('/employees/' + id);
+    document.getElementById('viewContent').innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+        ${avatar(e.name, e.color, 64)}
+        <div>
+          <div style="font-size:20px;font-weight:800">${e.name}</div>
+          <div style="color:var(--text-sm)">${e.job || '—'}</div>
+          <div style="color:var(--primary);font-size:13px;font-weight:600">${e.dept || '—'}</div>
+        </div>
+      </div>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <tr><td class="view-label">Employee ID</td><td><strong>${e.code}</strong></td></tr>
+        <tr><td class="view-label">Email</td><td>${e.email}</td></tr>
+        <tr><td class="view-label">Phone</td><td>${e.phone || '—'}</td></tr>
+        <tr><td class="view-label">Status</td><td>${badge(e.status)}</td></tr>
+        <tr><td class="view-label">Role</td><td>${e.role}</td></tr>
+        <tr><td class="view-label">Date Joined</td><td>${e.joined || '—'}</td></tr>
+        ${isHR ? `<tr><td class="view-label">Salary</td><td><strong>$${(e.salary||0).toLocaleString()}</strong></td></tr>` : ''}
+      </table>`;
+    openModal('viewModal');
+  } catch(ex) { toast(ex.message, 'danger'); }
+};
+
+window.saveEmployee = async () => {
+  const btn = document.getElementById('saveEmpBtn');
+  const err = document.getElementById('addErr');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await post('/employees', {
+      name:    document.getElementById('nName').value.trim(),
+      email:   document.getElementById('nEmail').value.trim(),
+      password:document.getElementById('nPass').value,
+      job:     document.getElementById('nJob').value.trim(),
+      dept:    document.getElementById('nDept').value.trim(),
+      phone:   document.getElementById('nPhone').value.trim(),
+      role:    document.getElementById('nRole').value,
+      salary:  parseFloat(document.getElementById('nSalary').value) || 0,
+      joined:  document.getElementById('nJoined').value,
+    });
+    closeModal('addModal');
+    toast('Employee added successfully ✓');
+    loadEmployees();
+  } catch(ex) {
+    err.textContent = ex.message; err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Employee';
+  }
+};
+
+window.openModal  = id => document.getElementById(id).classList.add('open');
+window.closeModal = id => document.getElementById(id).classList.remove('open');
+
+loadEmployees();
 </script>
+<style>.view-label{padding:6px 0;color:var(--text-sm);width:40%;vertical-align:top}</style>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Enterprise HRMS — Login</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -13,51 +13,119 @@
     <div class="login-title">Enterprise HRMS</div>
     <div class="login-sub">Every workday, perfectly aligned.</div>
 
-    <form id="loginForm" onsubmit="doLogin(event)">
-      <div class="form-group">
-        <label>Email Address</label>
-        <input id="email" class="form-control" type="email" placeholder="you@company.com" required/>
+    <div id="loginView">
+      <form id="loginForm" onsubmit="doLogin(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input id="email" class="form-control" type="email" placeholder="you@company.com" required/>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input id="password" class="form-control" type="password" placeholder="••••••••" required/>
+        </div>
+        <div id="loginErr" class="login-err"></div>
+        <button type="submit" class="btn btn-primary login-btn" id="loginBtn">Sign In →</button>
+      </form>
+      <div style="text-align:center;margin-top:16px">
+        <a href="#" onclick="showRegister();return false;" style="font-size:13px;color:var(--primary)">
+          No account yet? Register here
+        </a>
       </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input id="password" class="form-control" type="password" placeholder="••••••••" required/>
-      </div>
-      <div class="form-group">
-        <label>Login As</label>
-        <select id="role" class="form-select">
-          <option value="hr">HR / Admin</option>
-          <option value="employee">Employee</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-primary login-btn">Sign In →</button>
-      <div id="loginErr" class="login-err">Invalid email or password. Please try again.</div>
-    </form>
+    </div>
 
-    <div style="margin-top:20px; padding:14px; background:#f8f5ff; border-radius:10px; font-size:12px; color:#7F8C8D;">
-      <strong>Demo accounts (any password works):</strong><br/>
-      HR: <code>sarah.jenkins@hrms.demo</code><br/>
-      Employee: <code>michael.chen@hrms.demo</code>
+    <div id="registerView" style="display:none">
+      <form id="registerForm" onsubmit="doRegister(event)">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input id="regName" class="form-control" type="text" placeholder="John Doe" required/>
+        </div>
+        <div class="form-group">
+          <label>Email Address *</label>
+          <input id="regEmail" class="form-control" type="email" placeholder="you@company.com" required/>
+        </div>
+        <div class="form-group">
+          <label>Password * (min 6 chars)</label>
+          <input id="regPassword" class="form-control" type="password" placeholder="••••••••" required/>
+        </div>
+        <div class="form-group">
+          <label>Register As</label>
+          <select id="regRole" class="form-select">
+            <option value="employee">Employee</option>
+            <option value="hr">HR Officer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div id="regErr" class="login-err"></div>
+        <button type="submit" class="btn btn-primary login-btn" id="regBtn">Create Account →</button>
+      </form>
+      <div style="text-align:center;margin-top:16px">
+        <a href="#" onclick="showLogin();return false;" style="font-size:13px;color:var(--primary)">
+          ← Back to Sign In
+        </a>
+      </div>
     </div>
   </div>
 </div>
 
-<script src="app.js"></script>
-<script>
-  // Already logged in? redirect
-  if (HRMS.getUser()) window.location.href = 'dashboard.html';
+<div class="toast" id="toast"></div>
+<script type="module">
+  import { Auth, post, toast } from './api.js';
 
-  function doLogin(e) {
-    e.preventDefault();
-    const email    = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const role     = document.getElementById('role').value;
-    const ok = HRMS.login(email, password, role);
-    if (ok) {
-      window.location.href = role === 'employee' ? 'employees.html' : 'dashboard.html';
-    } else {
-      document.getElementById('loginErr').style.display = 'block';
-    }
+  if (Auth.token()) {
+    const user = Auth.user();
+    window.location.href = (user?.role === 'employee') ? 'employees.html' : 'dashboard.html';
   }
+
+  window.showRegister = () => {
+    document.getElementById('loginView').style.display    = 'none';
+    document.getElementById('registerView').style.display = 'block';
+  };
+  window.showLogin = () => {
+    document.getElementById('loginView').style.display    = 'block';
+    document.getElementById('registerView').style.display = 'none';
+  };
+
+  window.doLogin = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('loginErr');
+    err.style.display = 'none';
+    btn.textContent   = 'Signing in…'; btn.disabled = true;
+    try {
+      const data = await post('/auth/login', {
+        email:    document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+      });
+      Auth.setSession(data.token, data.user);
+      window.location.href = data.user.role === 'employee' ? 'employees.html' : 'dashboard.html';
+    } catch (ex) {
+      err.textContent   = ex.message;
+      err.style.display = 'block';
+      btn.textContent   = 'Sign In →'; btn.disabled = false;
+    }
+  };
+
+  window.doRegister = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('regBtn');
+    const err = document.getElementById('regErr');
+    err.style.display = 'none';
+    btn.textContent   = 'Creating…'; btn.disabled = true;
+    try {
+      const data = await post('/auth/register', {
+        name:     document.getElementById('regName').value.trim(),
+        email:    document.getElementById('regEmail').value.trim(),
+        password: document.getElementById('regPassword').value,
+        role:     document.getElementById('regRole').value,
+      });
+      Auth.setSession(data.token, data.user);
+      window.location.href = data.user.role === 'employee' ? 'employees.html' : 'dashboard.html';
+    } catch (ex) {
+      err.textContent   = ex.message;
+      err.style.display = 'block';
+      btn.textContent   = 'Create Account →'; btn.disabled = false;
+    }
+  };
 </script>
 </body>
 </html>

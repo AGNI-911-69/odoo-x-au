@@ -1,0 +1,4 @@
+node_modules/
+hrms.db
+hrms.db-shm
+hrms.db-wal
