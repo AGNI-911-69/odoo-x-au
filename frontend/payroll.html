@@ -141,7 +141,7 @@ window.loadPayroll = async function() {
 
     document.getElementById('tableHead').innerHTML = `<tr>
       ${isHR?'<th>Employee</th>':''}<th>Month</th><th>Basic</th>
-      <th>Allowances</th><th>Gross</th><th>Deductions</th>
+      <th class="payroll-hide-mobile">Allowances</th><th>Gross</th><th class="payroll-hide-mobile">Deductions</th>
       <th>Net Salary</th><th>Status</th>${isHR?'<th>Action</th>':''}</tr>`;
 
     document.getElementById('payTable').innerHTML = filt.length
@@ -153,9 +153,9 @@ window.loadPayroll = async function() {
             ${isHR?`<td><strong>${p.emp_name}</strong></td>`:''}
             <td>${p.month}</td>
             <td>$${p.basic.toLocaleString()}</td>
-            <td>$${allow.toLocaleString()}</td>
+            <td class="payroll-hide-mobile">$${allow.toLocaleString()}</td>
             <td style="font-weight:700">$${gross.toLocaleString()}</td>
-            <td style="color:var(--danger)">$${((p.tax||0)+(p.pf||0)).toLocaleString()}</td>
+            <td class="payroll-hide-mobile" style="color:var(--danger)">$${((p.tax||0)+(p.pf||0)).toLocaleString()}</td>
             <td style="font-weight:800;color:var(--primary);font-size:15px">$${net.toLocaleString()}</td>
             <td>${badge(p.state)}</td>
             ${isHR?`<td>

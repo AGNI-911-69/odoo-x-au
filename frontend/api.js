@@ -160,6 +160,11 @@ export function renderSidebar(active) {
 export function renderTopbar() {
   const user = Auth.user() || {};
   return `
+    <button class="topbar-hamburger" id="sidebarToggle" style="display:none" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
     <div class="topbar-search">
       ${icons.search}
       <input type="text" placeholder="Search employees or records…" id="globalSearch" autocomplete="off" oninput="if(window.onGlobalSearch)onGlobalSearch(this.value)"/>
@@ -175,6 +180,55 @@ export function renderTopbar() {
         </div>
       </div>
     </div>`;
+}
+
+// ── Mobile sidebar toggle ─────────────────────────────────────
+function initMobileNav() {
+  const mq = window.matchMedia('(max-width: 768px)');
+  const btn = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('sidebar');
+
+  // Inject backdrop
+  if (!document.getElementById('sidebarBackdrop')) {
+    const bd = document.createElement('div');
+    bd.id = 'sidebarBackdrop';
+    bd.className = 'sidebar-backdrop';
+    bd.onclick = closeSidebar;
+    document.body.appendChild(bd);
+  }
+
+  function apply(mobile) {
+    if (btn) btn.style.display = mobile ? 'flex' : 'none';
+  }
+
+  apply(mq.matches);
+  mq.addEventListener('change', e => { apply(e.matches); if (!e.matches) closeSidebar(); });
+}
+
+window.toggleSidebar = function() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  sidebar?.classList.toggle('open');
+  backdrop?.classList.toggle('open');
+};
+
+window.closeSidebar = function() {
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebarBackdrop')?.classList.remove('open');
+};
+
+// Close sidebar on nav item click (mobile)
+document.addEventListener('click', e => {
+  if (e.target.closest('.nav-item') || e.target.closest('.sidebar-checkin-btn')) {
+    if (window.matchMedia('(max-width: 768px)').matches) closeSidebar();
+  }
+});
+
+// Init after DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMobileNav);
+} else {
+  setTimeout(initMobileNav, 0);
 }
 
 window.doLogout = () => { Auth.clear(); window.location.href = 'index.html'; };

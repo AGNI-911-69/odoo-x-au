@@ -500,9 +500,136 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 .loading-row { text-align: center; color: var(--text-sm); padding: 28px; }
 
-/* Responsive */
-@media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } .dash-grid,.leave-grid { grid-template-columns: 1fr; } }
-@media (max-width: 700px)  { .sidebar { transform: translateX(-100%); } .main { margin-left: 0; } .kpi-grid { grid-template-columns: 1fr 1fr; } }
+/* ── Responsive — Tablet & Mobile ──────────────────────────── */
+
+/* Tablet: 1024px */
+@media (max-width: 1024px) {
+  .kpi-grid          { grid-template-columns: repeat(2,1fr); }
+  .dash-grid         { grid-template-columns: 1fr; }
+  .leave-grid        { grid-template-columns: 1fr; }
+  .payroll-summary   { grid-template-columns: repeat(2,1fr); }
+  .topbar-search     { width: 220px; }
+}
+
+/* Mobile: 768px */
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+
+  /* Sidebar: hidden off-screen, slides in on toggle */
+  .sidebar {
+    transform: translateX(-100%);
+    width: 220px;
+    z-index: 300;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* Sidebar overlay backdrop */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 299;
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-backdrop.open { display: block; }
+
+  /* Main: full width */
+  .main { margin-left: 0; }
+
+  /* Topbar: show hamburger, hide search */
+  .topbar { padding: 0 16px; gap: 10px; }
+  .topbar-search { display: none; }
+  .topbar-hamburger {
+    display: flex !important;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--bg); border: 1.5px solid var(--border);
+    align-items: center; justify-content: center;
+    color: var(--text-md); cursor: pointer; flex-shrink: 0;
+    transition: var(--transition);
+  }
+  .topbar-hamburger:hover { background: var(--primary-lt); color: var(--primary); }
+  .user-name, .user-role { display: none; }
+  .topbar-icon:not(:first-child) { display: none; }
+
+  /* Page content */
+  .page-content { padding: 16px; }
+
+  /* Page header: stack on mobile */
+  .page-header {
+    flex-direction: column; gap: 12px; margin-bottom: 16px;
+  }
+  .page-header h1    { font-size: 20px; }
+  .page-header-actions { flex-wrap: wrap; }
+
+  /* KPI grid: 2 col on mobile */
+  .kpi-grid { grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 16px; }
+  .kpi-value { font-size: 24px; }
+  .kpi-card  { padding: 16px 14px; }
+
+  /* Dash grid: single col */
+  .dash-grid       { grid-template-columns: 1fr; gap: 14px; }
+  .leave-grid      { grid-template-columns: 1fr; gap: 14px; }
+  .leave-balance-row { grid-template-columns: 1fr; gap: 10px; }
+  .payroll-summary { grid-template-columns: 1fr; gap: 10px; }
+
+  /* Leave calendar + form: stack vertically */
+  .leave-cal-form-grid { grid-template-columns: 1fr !important; }
+
+  /* Employee kanban: single col */
+  .emp-kanban { grid-template-columns: 1fr; gap: 12px; }
+
+  /* Tables: horizontal scroll with readable font */
+  .table-wrap { -webkit-overflow-scrolling: touch; }
+  thead th    { font-size: 10px; padding: 8px 10px; }
+  tbody td    { font-size: 12.5px; padding: 10px; }
+
+  /* Toolbar: stack */
+  .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .toolbar .form-control,
+  .toolbar .form-select { max-width: 100% !important; width: 100%; }
+  .view-toggle { align-self: flex-end; }
+
+  /* Modals: full width */
+  .modal { width: calc(100vw - 32px); padding: 20px; }
+
+  /* Cards: less padding */
+  .card { padding: 16px; }
+
+  /* Login card */
+  .login-card { width: calc(100vw - 32px); padding: 28px 22px; }
+
+  /* Toast: full width on mobile */
+  .toast { left: 16px; right: 16px; bottom: 16px; }
+
+  /* Table footer */
+  .table-footer { flex-direction: column; gap: 10px; align-items: flex-start; }
+
+  /* Attendance filter row: stack */
+  .att-filter-row { flex-direction: column !important; gap: 8px !important; }
+
+  /* Balance cards horizontal on mobile */
+  .balance-card { padding: 14px; }
+  .bal-days     { font-size: 20px; }
+
+  /* Approval buttons full width */
+  .approval-btns .btn { padding: 8px 12px; font-size: 12px; }
+
+  /* Payroll table: hide some cols on very small */
+  .payroll-hide-mobile { display: none; }
+}
+
+/* Very small: 480px */
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kpi-value { font-size: 20px; }
+  .kpi-card { padding: 12px; }
+  .page-header h1 { font-size: 18px; }
+  .emp-kanban { grid-template-columns: 1fr; }
+  .leave-balance-row { grid-template-columns: repeat(3,1fr); gap: 8px; }
+  .bal-days { font-size: 16px; }
+  .bal-type { font-size: 9px; }
+}
 
 /* ── Sidebar bottom: Settings, Support, Check In/Out ────────── */
 .sidebar-bottom-links { padding: 8px 0; }
