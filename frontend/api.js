@@ -22,14 +22,41 @@ export const Auth = {
 
 // ── Fetch wrapper ─────────────────────────────────────────────
 export async function api(method, path, body = null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(20000), // 20s timeout for Railway cold starts
+  };
   const token = Auth.token();
   if (token) opts.headers['Authorization'] = 'Bearer ' + token;
   if (body)  opts.body = JSON.stringify(body);
-  const res  = await fetch(BASE + path, opts);
-  if (res.status === 401) { Auth.clear(); window.location.href = 'index.html'; return; }
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+
+  let res;
+  try {
+    res = await fetch(BASE + path, opts);
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      throw new Error('Server is waking up, please try again in a few seconds.');
+    }
+    throw new Error('Network error — check your connection and try again.');
+  }
+
+  // 401 on protected routes = expired token, redirect to login
+  // but NOT on /auth/login or /auth/register (those return 401 for wrong creds)
+  if (res.status === 401 && !path.includes('/auth/')) {
+    Auth.clear();
+    window.location.href = 'index.html';
+    return null;
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    throw new Error('Unexpected server response. Please try again.');
+  }
+
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
   return data;
 }
 export const get  = p      => api('GET',    p);

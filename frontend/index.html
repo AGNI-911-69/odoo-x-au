@@ -86,6 +86,9 @@ if (Auth.token()) {
   window.location.href = Auth.isHR() ? 'dashboard.html' : 'employees.html';
 }
 
+// Ping backend on load so Railway wakes up before user clicks Sign In
+fetch(window.HRMS_API_URL.replace('/api', '/health')).catch(() => {});
+
 window.showView = (v) => {
   document.getElementById('loginView').style.display = v === 'login' ? 'block' : 'none';
   document.getElementById('regView').style.display   = v === 'reg'   ? 'block' : 'none';
@@ -102,6 +105,7 @@ window.doLogin = async (e) => {
       email:    document.getElementById('liEmail').value.trim(),
       password: document.getElementById('liPass').value,
     });
+    if (!data || !data.token) throw new Error('Invalid server response — please try again.');
     Auth.set(data.token, data.user);
     window.location.href = data.user.role === 'employee' ? 'employees.html' : 'dashboard.html';
   } catch (ex) {
@@ -123,6 +127,7 @@ window.doRegister = async (e) => {
       password: document.getElementById('rePass').value,
       role:     document.getElementById('reRole').value,
     });
+    if (!data || !data.token) throw new Error('Invalid server response — please try again.');
     Auth.set(data.token, data.user);
     window.location.href = data.user.role === 'employee' ? 'employees.html' : 'dashboard.html';
   } catch (ex) {

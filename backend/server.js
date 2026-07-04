@@ -10,8 +10,20 @@ const SECRET = process.env.JWT_SECRET || 'hrms-jwt-secret-2026';
 
 const COLORS = ['#5B2D8E','#E74C3C','#F39C12','#27AE60','#2980B9','#8E44AD','#16A085','#D35400','#1A252F','#2C3E50'];
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://odoo-x-au.vercel.app',
+    'http://localhost:8080',
+    'http://localhost:3000',
+    /\.vercel\.app$/,
+  ],
+  credentials: true,
+}));
 app.use(express.json());
+
+// ── Health check (keeps Railway warm) ────────────────────────────────────────
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
+app.get('/', (req, res) => res.json({ service: 'HRMS API', status: 'running' }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function auth(req, res, next) {
