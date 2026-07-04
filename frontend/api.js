@@ -140,7 +140,9 @@ export function renderSidebar(active) {
   ).join('');
   return `
     <div class="sidebar-brand">
-      <div class="brand-title">Enterprise HRMS</div>
+      <div class="brand-logo-wrap">
+        <img src="company logo/Screenshot 2026-07-04 112039.png" alt="Odoo" class="sidebar-logo"/>
+      </div>
       <div class="brand-sub">${isHR ? 'Admin Portal' : 'Employee Portal'}</div>
     </div>
     <nav class="sidebar-nav">${items}</nav>

@@ -64,7 +64,8 @@ input, select, textarea { font-family: inherit; }
   padding: 22px 20px 16px;
   border-bottom: 1px solid var(--border-lt);
 }
-.brand-title { font-size: 15px; font-weight: 800; color: var(--primary); letter-spacing: -.2px; }
+.brand-logo-wrap { padding: 2px 0 4px; }
+.sidebar-logo { width: 90px; height: auto; display: block; object-fit: contain; }
 .brand-sub   { font-size: 11px; color: var(--text-sm); margin-top: 2px; font-weight: 500; }
 
 .sidebar-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
