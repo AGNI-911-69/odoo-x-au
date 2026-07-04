@@ -197,16 +197,79 @@ export function renderTopbar() {
       <input type="text" placeholder="Search employees or records…" id="globalSearch" autocomplete="off" oninput="if(window.onGlobalSearch)onGlobalSearch(this.value)"/>
     </div>
     <div class="topbar-right">
-      <div class="topbar-icon">${icons.bell}</div>
-      <div class="topbar-icon">${icons.grid}</div>
-      <div class="topbar-user">
+      <button class="topbar-icon" title="Notifications" onclick="topbarNotif()" aria-label="Notifications">${icons.bell}</button>
+      <button class="topbar-icon" title="Apps" onclick="topbarApps()" aria-label="Apps">${icons.grid}</button>
+      <div class="topbar-user" id="topbarUserMenu" onclick="toggleUserMenu()" style="cursor:pointer;position:relative">
         ${avatar(user.name, user.color, 36)}
         <div>
           <div class="user-name">${user.name || ''}</div>
           <div class="user-role">${user.role === 'hr' ? 'HR Manager' : user.role === 'admin' ? 'Administrator' : 'Employee'}</div>
         </div>
+        <!-- User dropdown menu -->
+        <div id="userDropdown" class="user-dropdown" style="display:none">
+          <div class="user-dropdown-header">
+            ${avatar(user.name, user.color, 42)}
+            <div>
+              <div style="font-weight:700;font-size:14px">${user.name || ''}</div>
+              <div style="font-size:12px;color:var(--text-sm)">${user.role || ''}</div>
+            </div>
+          </div>
+          <div class="user-dropdown-divider"></div>
+          <a href="employees.html" class="user-dropdown-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            My Profile
+          </a>
+          <a href="attendance.html" class="user-dropdown-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Check In/Out
+          </a>
+          <div class="user-dropdown-divider"></div>
+          <a href="#" class="user-dropdown-item user-dropdown-danger" onclick="doLogout();return false;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+          </a>
+        </div>
       </div>
     </div>`;
+}
+
+// ── Topbar button handlers ────────────────────────────────────
+window.topbarNotif = function() {
+  toast('No new notifications', 'info');
+};
+window.topbarApps = function() {
+  const pages = [
+    { label: 'Dashboard',   href: 'dashboard.html' },
+    { label: 'Employees',   href: 'employees.html' },
+    { label: 'Attendance',  href: 'attendance.html' },
+    { label: 'Leave',       href: 'leave.html' },
+    { label: 'Payroll',     href: 'payroll.html' },
+  ];
+  // Simple app switcher toast menu
+  const existing = document.getElementById('appSwitcher');
+  if (existing) { existing.remove(); return; }
+  const menu = document.createElement('div');
+  menu.id = 'appSwitcher';
+  menu.style.cssText = 'position:fixed;top:66px;right:60px;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);z-index:500;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:200px';
+  menu.innerHTML = pages.map(p =>
+    `<a href="${p.href}" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text-md);text-decoration:none;transition:background .15s" onmouseover="this.style.background='var(--primary-lt)';this.style.color='var(--primary)'" onmouseout="this.style.background='';this.style.color='var(--text-md)'">${p.label}</a>`
+  ).join('');
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 50);
+};
+window.toggleUserMenu = function() {
+  const dd = document.getElementById('userDropdown');
+  if (!dd) return;
+  const isOpen = dd.style.display !== 'none';
+  dd.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    setTimeout(() => document.addEventListener('click', (e) => {
+      if (!document.getElementById('topbarUserMenu')?.contains(e.target)) {
+        dd.style.display = 'none';
+      }
+    }, { once: true }), 50);
+  }
+};
 }
 
 // ── Mobile sidebar toggle ─────────────────────────────────────
