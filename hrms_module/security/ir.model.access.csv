@@ -1,0 +1,17 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hrms_employee_employee,hrms.employee employee,model_hrms_employee,hrms_module.group_hrms_employee,1,1,0,0
+access_hrms_employee_hr,hrms.employee hr,model_hrms_employee,hrms_module.group_hrms_hr_officer,1,1,1,1
+access_hrms_employee_document_employee,hrms.employee.document employee,model_hrms_employee_document,hrms_module.group_hrms_employee,1,0,0,0
+access_hrms_employee_document_hr,hrms.employee.document hr,model_hrms_employee_document,hrms_module.group_hrms_hr_officer,1,1,1,1
+access_hrms_attendance_employee,hrms.attendance employee,model_hrms_attendance,hrms_module.group_hrms_employee,1,1,1,0
+access_hrms_attendance_hr,hrms.attendance hr,model_hrms_attendance,hrms_module.group_hrms_hr_officer,1,1,1,1
+access_hrms_leave_type_employee,hrms.leave.type employee,model_hrms_leave_type,hrms_module.group_hrms_employee,1,0,0,0
+access_hrms_leave_type_hr,hrms.leave.type hr,model_hrms_leave_type,hrms_module.group_hrms_hr_officer,1,1,1,1
+access_hrms_leave_balance_employee,hrms.leave.balance employee,model_hrms_leave_balance,hrms_module.group_hrms_employee,1,0,0,0
+access_hrms_leave_balance_hr,hrms.leave.balance hr,model_hrms_leave_balance,hrms_module.group_hrms_hr_officer,1,1,1,1
+access_hrms_leave_employee,hrms.leave employee,model_hrms_leave,hrms_module.group_hrms_employee,1,1,1,0
+access_hrms_leave_hr,hrms.leave hr,model_hrms_leave,hrms_module.group_hrms_hr_officer,1,1,1,1
+access_hrms_payroll_employee,hrms.payroll employee,model_hrms_payroll,hrms_module.group_hrms_employee,1,0,0,0
+access_hrms_payroll_hr,hrms.payroll hr,model_hrms_payroll,hrms_module.group_hrms_hr_officer,1,1,1,1
+access_hrms_leave_wizard_employee,hrms.leave.wizard employee,model_hrms_leave_wizard,hrms_module.group_hrms_employee,1,1,1,1
+access_hrms_leave_wizard_hr,hrms.leave.wizard hr,model_hrms_leave_wizard,hrms_module.group_hrms_hr_officer,1,1,1,1

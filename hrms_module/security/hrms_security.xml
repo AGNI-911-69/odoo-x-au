@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Groups ─────────────────────────────────────────────────────────── -->
+    <record id="group_hrms_employee" model="res.groups">
+        <field name="name">Employee</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+        <field name="comment">Regular employee: can view own profile, attendance, apply for leave, view own payroll.</field>
+    </record>
+
+    <record id="group_hrms_hr_officer" model="res.groups">
+        <field name="name">HR Officer</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+        <field name="implied_ids" eval="[(4, ref('group_hrms_employee'))]"/>
+        <field name="comment">HR Officer: can manage employees, approve leaves, manage attendance and payroll.</field>
+    </record>
+
+    <record id="group_hrms_admin" model="res.groups">
+        <field name="name">Administrator</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+        <field name="implied_ids" eval="[(4, ref('group_hrms_hr_officer'))]"/>
+        <field name="comment">Full access to all HRMS features.</field>
+    </record>
+
+    <!-- ── Record Rules ───────────────────────────────────────────────────── -->
+
+    <!-- Employees: regular users can only read their own record -->
+    <record id="rule_hrms_employee_own" model="ir.rule">
+        <field name="name">HRMS Employee: See Own Record</field>
+        <field name="model_id" ref="model_hrms_employee"/>
+        <field name="groups" eval="[(4, ref('group_hrms_employee'))]"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- HR Officers and Admins see all employees -->
+    <record id="rule_hrms_employee_hr_all" model="ir.rule">
+        <field name="name">HRMS Employee: HR Officer Sees All</field>
+        <field name="model_id" ref="model_hrms_employee"/>
+        <field name="groups" eval="[(4, ref('group_hrms_hr_officer'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Attendance: employee sees only own records -->
+    <record id="rule_hrms_attendance_own" model="ir.rule">
+        <field name="name">HRMS Attendance: See Own</field>
+        <field name="model_id" ref="model_hrms_attendance"/>
+        <field name="groups" eval="[(4, ref('group_hrms_employee'))]"/>
+        <field name="domain_force">[('employee_id.user_id', '=', user.id)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Attendance: HR sees all -->
+    <record id="rule_hrms_attendance_hr_all" model="ir.rule">
+        <field name="name">HRMS Attendance: HR Sees All</field>
+        <field name="model_id" ref="model_hrms_attendance"/>
+        <field name="groups" eval="[(4, ref('group_hrms_hr_officer'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Leave: employee sees only own -->
+    <record id="rule_hrms_leave_own" model="ir.rule">
+        <field name="name">HRMS Leave: See Own</field>
+        <field name="model_id" ref="model_hrms_leave"/>
+        <field name="groups" eval="[(4, ref('group_hrms_employee'))]"/>
+        <field name="domain_force">[('employee_id.user_id', '=', user.id)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Leave: HR sees all -->
+    <record id="rule_hrms_leave_hr_all" model="ir.rule">
+        <field name="name">HRMS Leave: HR Sees All</field>
+        <field name="model_id" ref="model_hrms_leave"/>
+        <field name="groups" eval="[(4, ref('group_hrms_hr_officer'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Payroll: employee sees own, read-only enforced via access CSV -->
+    <record id="rule_hrms_payroll_own" model="ir.rule">
+        <field name="name">HRMS Payroll: See Own</field>
+        <field name="model_id" ref="model_hrms_payroll"/>
+        <field name="groups" eval="[(4, ref('group_hrms_employee'))]"/>
+        <field name="domain_force">[('employee_id.user_id', '=', user.id)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Payroll: HR sees all -->
+    <record id="rule_hrms_payroll_hr_all" model="ir.rule">
+        <field name="name">HRMS Payroll: HR Sees All</field>
+        <field name="model_id" ref="model_hrms_payroll"/>
+        <field name="groups" eval="[(4, ref('group_hrms_hr_officer'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+</odoo>

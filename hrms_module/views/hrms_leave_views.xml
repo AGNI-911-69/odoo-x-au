@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Leave Type Views ───────────────────────────────────────────────── -->
+    <record id="view_hrms_leave_type_list" model="ir.ui.view">
+        <field name="name">hrms.leave.type.list</field>
+        <field name="model">hrms.leave.type</field>
+        <field name="arch" type="xml">
+            <list string="Leave Types" editable="top">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="max_days"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hrms_leave_type" model="ir.actions.act_window">
+        <field name="name">Leave Types</field>
+        <field name="res_model">hrms.leave.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ── Leave Balance Views ────────────────────────────────────────────── -->
+    <record id="view_hrms_leave_balance_list" model="ir.ui.view">
+        <field name="name">hrms.leave.balance.list</field>
+        <field name="model">hrms.leave.balance</field>
+        <field name="arch" type="xml">
+            <list string="Leave Balances" editable="bottom">
+                <field name="employee_id"/>
+                <field name="leave_type_id"/>
+                <field name="year"/>
+                <field name="allocated_days"/>
+                <field name="used_days" readonly="1"/>
+                <field name="remaining_days" readonly="1"
+                       decoration-danger="remaining_days &lt; 2"
+                       decoration-warning="remaining_days &lt; 5"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hrms_leave_balance" model="ir.actions.act_window">
+        <field name="name">Leave Balances</field>
+        <field name="res_model">hrms.leave.balance</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ── Leave Request List ─────────────────────────────────────────────── -->
+    <record id="view_hrms_leave_list" model="ir.ui.view">
+        <field name="name">hrms.leave.list</field>
+        <field name="model">hrms.leave</field>
+        <field name="arch" type="xml">
+            <list string="Leave Requests"
+                  decoration-success="state == 'approved'"
+                  decoration-danger="state == 'rejected'"
+                  decoration-warning="state == 'pending'">
+                <field name="employee_id"/>
+                <field name="leave_type_id"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="number_of_days" string="Days"/>
+                <field name="reason"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'"
+                       decoration-warning="state == 'pending'"/>
+                <field name="approved_by" groups="hrms_module.group_hrms_hr_officer"/>
+                <button name="action_approve" type="object" string="Approve"
+                        icon="fa-check" class="btn-sm btn-success"
+                        attrs="{'invisible': [('state', '!=', 'pending')]}"
+                        groups="hrms_module.group_hrms_hr_officer"/>
+                <button name="action_reject" type="object" string="Reject"
+                        icon="fa-times" class="btn-sm btn-danger"
+                        attrs="{'invisible': [('state', '!=', 'pending')]}"
+                        groups="hrms_module.group_hrms_hr_officer"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Leave Request Form ─────────────────────────────────────────────── -->
+    <record id="view_hrms_leave_form" model="ir.ui.view">
+        <field name="name">hrms.leave.form</field>
+        <field name="model">hrms.leave</field>
+        <field name="arch" type="xml">
+            <form string="Leave Request" class="hrms_leave_form">
+                <header>
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-success" icon="fa-check"
+                            attrs="{'invisible': [('state', '!=', 'pending')]}"
+                            groups="hrms_module.group_hrms_hr_officer"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            class="btn-danger" icon="fa-times"
+                            attrs="{'invisible': [('state', '!=', 'pending')]}"
+                            groups="hrms_module.group_hrms_hr_officer"/>
+                    <button name="action_reset_to_pending" type="object"
+                            string="Reset to Pending"
+                            attrs="{'invisible': [('state', '=', 'pending')]}"
+                            groups="hrms_module.group_hrms_admin"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,approved,rejected"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="display_name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Leave Details">
+                            <field name="employee_id"
+                                   attrs="{'readonly': [('state', '!=', 'pending')]}"/>
+                            <field name="leave_type_id"
+                                   attrs="{'readonly': [('state', '!=', 'pending')]}"/>
+                            <field name="date_from" widget="date"
+                                   attrs="{'readonly': [('state', '!=', 'pending')]}"/>
+                            <field name="date_to" widget="date"
+                                   attrs="{'readonly': [('state', '!=', 'pending')]}"/>
+                            <field name="number_of_days" readonly="1"/>
+                        </group>
+                        <group string="Status Info">
+                            <field name="state" readonly="1"/>
+                            <field name="approved_by" readonly="1"
+                                   attrs="{'invisible': [('approved_by', '=', False)]}"/>
+                            <field name="approved_date" readonly="1"
+                                   attrs="{'invisible': [('approved_date', '=', False)]}"/>
+                            <field name="rejection_reason" readonly="1"
+                                   attrs="{'invisible': [('rejection_reason', '=', False)]}"/>
+                        </group>
+                    </group>
+                    <group string="Reason / Remarks">
+                        <field name="reason" widget="text" nolabel="1"
+                               placeholder="Describe the reason for leave..."
+                               attrs="{'readonly': [('state', '!=', 'pending')]}"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Calendar View ─────────────────────────────────────────────────── -->
+    <record id="view_hrms_leave_calendar" model="ir.ui.view">
+        <field name="name">hrms.leave.calendar</field>
+        <field name="model">hrms.leave</field>
+        <field name="arch" type="xml">
+            <calendar string="Leave Calendar" date_start="date_from"
+                      date_stop="date_to" color="leave_type_id"
+                      mode="month" quick_create="0">
+                <field name="employee_id"/>
+                <field name="leave_type_id"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- ── Search View ────────────────────────────────────────────────────── -->
+    <record id="view_hrms_leave_search" model="ir.ui.view">
+        <field name="name">hrms.leave.search</field>
+        <field name="model">hrms.leave</field>
+        <field name="arch" type="xml">
+            <search string="Search Leaves">
+                <field name="employee_id"/>
+                <field name="leave_type_id"/>
+                <separator/>
+                <filter string="Pending" name="pending" domain="[('state', '=', 'pending')]"/>
+                <filter string="Approved" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Rejected" name="rejected" domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <filter string="My Requests" name="my_leaves"
+                        domain="[('employee_id.user_id', '=', uid)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Employee" name="grp_emp" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Leave Type" name="grp_type" context="{'group_by': 'leave_type_id'}"/>
+                    <filter string="Status" name="grp_state" context="{'group_by': 'state'}"/>
+                    <filter string="Month" name="grp_month" context="{'group_by': 'date_from:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Actions ────────────────────────────────────────────────────────── -->
+    <record id="action_hrms_leave" model="ir.actions.act_window">
+        <field name="name">Leave / Time-Off</field>
+        <field name="res_model">hrms.leave</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="search_view_id" ref="view_hrms_leave_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No leave requests yet</p>
+            <p>Apply for leave and track approval status.</p>
+        </field>
+    </record>
+
+    <record id="action_hrms_leave_pending" model="ir.actions.act_window">
+        <field name="name">Pending Approvals</field>
+        <field name="res_model">hrms.leave</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'pending')]</field>
+        <field name="context">{'search_default_pending': 1}</field>
+    </record>
+
+    <record id="action_hrms_my_leave" model="ir.actions.act_window">
+        <field name="name">My Leave Requests</field>
+        <field name="res_model">hrms.leave</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="domain">[('employee_id.user_id', '=', uid)]</field>
+        <field name="context">{'default_employee_id': uid}</field>
+    </record>
+
+    <!-- ── Leave Wizard Action ────────────────────────────────────────────── -->
+    <record id="action_hrms_leave_wizard" model="ir.actions.act_window">
+        <field name="name">Approve / Reject Leave</field>
+        <field name="res_model">hrms.leave.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

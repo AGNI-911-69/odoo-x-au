@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── List View ──────────────────────────────────────────────────────── -->
+    <record id="view_hrms_payroll_list" model="ir.ui.view">
+        <field name="name">hrms.payroll.list</field>
+        <field name="model">hrms.payroll</field>
+        <field name="arch" type="xml">
+            <list string="Payroll Records"
+                  decoration-success="state == 'paid'"
+                  decoration-warning="state == 'confirmed'"
+                  decoration-muted="state == 'draft'">
+                <field name="employee_id"/>
+                <field name="month"/>
+                <field name="year"/>
+                <field name="basic_salary"/>
+                <field name="gross_salary"/>
+                <field name="total_deductions"/>
+                <field name="net_salary" string="Net Salary"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'paid'"
+                       decoration-warning="state == 'confirmed'"
+                       decoration-muted="state == 'draft'"/>
+                <field name="payment_date"
+                       attrs="{'invisible': [('state', '!=', 'paid')]}"/>
+                <button name="action_confirm" type="object" string="Confirm"
+                        class="btn-sm btn-warning" icon="fa-check"
+                        attrs="{'invisible': [('state', '!=', 'draft')]}"
+                        groups="hrms_module.group_hrms_hr_officer"/>
+                <button name="action_mark_paid" type="object" string="Mark Paid"
+                        class="btn-sm btn-success" icon="fa-money"
+                        attrs="{'invisible': [('state', '!=', 'confirmed')]}"
+                        groups="hrms_module.group_hrms_hr_officer"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Form View ──────────────────────────────────────────────────────── -->
+    <record id="view_hrms_payroll_form" model="ir.ui.view">
+        <field name="name">hrms.payroll.form</field>
+        <field name="model">hrms.payroll</field>
+        <field name="arch" type="xml">
+            <form string="Payroll Record" class="hrms_payroll_form">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm"
+                            class="btn-warning" icon="fa-check"
+                            attrs="{'invisible': [('state', '!=', 'draft')]}"
+                            groups="hrms_module.group_hrms_hr_officer"/>
+                    <button name="action_mark_paid" type="object" string="Mark as Paid"
+                            class="btn-success" icon="fa-money"
+                            attrs="{'invisible': [('state', '!=', 'confirmed')]}"
+                            groups="hrms_module.group_hrms_hr_officer"/>
+                    <button name="action_reset_draft" type="object" string="Reset to Draft"
+                            attrs="{'invisible': [('state', 'not in', ['confirmed'])]}"
+                            groups="hrms_module.group_hrms_admin"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,paid"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="display_name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Employee Info">
+                            <field name="employee_id"
+                                   attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="month"
+                                   attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="year"
+                                   attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="payment_date"
+                                   attrs="{'invisible': [('state', '!=', 'paid')]}"/>
+                        </group>
+                        <group string="Summary">
+                            <field name="gross_salary" readonly="1"/>
+                            <field name="total_deductions" readonly="1"/>
+                            <field name="net_salary" readonly="1"
+                                   class="hrms_net_salary_highlight"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Earnings" name="earnings">
+                            <group>
+                                <group>
+                                    <field name="basic_salary"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                    <field name="house_rent_allowance"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                    <field name="transport_allowance"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                    <field name="medical_allowance"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                    <field name="other_allowances"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                </group>
+                                <group>
+                                    <field name="gross_salary" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Deductions" name="deductions">
+                            <group>
+                                <group>
+                                    <field name="tax_deduction"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                    <field name="provident_fund"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                    <field name="other_deductions"
+                                           attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                                </group>
+                                <group>
+                                    <field name="total_deductions" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Notes" name="notes_tab">
+                            <field name="notes" widget="text"
+                                   attrs="{'readonly': [('state', '=', 'paid')]}"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Search View ────────────────────────────────────────────────────── -->
+    <record id="view_hrms_payroll_search" model="ir.ui.view">
+        <field name="name">hrms.payroll.search</field>
+        <field name="model">hrms.payroll</field>
+        <field name="arch" type="xml">
+            <search string="Search Payroll">
+                <field name="employee_id"/>
+                <field name="month"/>
+                <field name="year"/>
+                <separator/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="Paid" name="paid" domain="[('state', '=', 'paid')]"/>
+                <separator/>
+                <filter string="My Payroll" name="my_payroll"
+                        domain="[('employee_id.user_id', '=', uid)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Employee" name="grp_emp" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Month" name="grp_month" context="{'group_by': 'month'}"/>
+                    <filter string="Year" name="grp_year" context="{'group_by': 'year'}"/>
+                    <filter string="Status" name="grp_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Actions ────────────────────────────────────────────────────────── -->
+    <record id="action_hrms_payroll" model="ir.actions.act_window">
+        <field name="name">Payroll</field>
+        <field name="res_model">hrms.payroll</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_hrms_payroll_search"/>
+        <field name="groups_id" eval="[(4, ref('hrms_module.group_hrms_hr_officer'))]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No payroll records yet</p>
+            <p>Create payroll records for employees each month.</p>
+        </field>
+    </record>
+
+    <record id="action_hrms_my_payroll" model="ir.actions.act_window">
+        <field name="name">My Payroll</field>
+        <field name="res_model">hrms.payroll</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('employee_id.user_id', '=', uid)]</field>
+    </record>
+
+</odoo>

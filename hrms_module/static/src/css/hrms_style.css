@@ -1,0 +1,229 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Enterprise HRMS - Custom Stylesheet
+   Matching the provided design: purple/teal palette, card-based layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --hrms-primary:    #5B2D8E;
+    --hrms-primary-dk: #3d1f61;
+    --hrms-teal:       #00C9C9;
+    --hrms-success:    #27AE60;
+    --hrms-danger:     #E74C3C;
+    --hrms-warning:    #F39C12;
+    --hrms-info:       #2980B9;
+    --hrms-muted:      #95A5A6;
+    --hrms-bg:         #F4F5F7;
+    --hrms-card-bg:    #FFFFFF;
+    --hrms-border:     #E0E0E0;
+    --hrms-text:       #2C3E50;
+    --hrms-text-light: #7F8C8D;
+    --hrms-radius:     12px;
+    --hrms-shadow:     0 2px 12px rgba(91, 45, 142, 0.08);
+}
+
+/* ── Sidebar Styling ─────────────────────────────────────────────────────── */
+.o_main_navbar {
+    background: #FFFFFF !important;
+    border-bottom: 1px solid var(--hrms-border) !important;
+}
+
+/* ── Employee Kanban Cards ───────────────────────────────────────────────── */
+.hrms_employee_kanban .o_kanban_view {
+    background: var(--hrms-bg);
+    padding: 16px;
+}
+
+.hrms_emp_card {
+    border-radius: var(--hrms-radius) !important;
+    border: 1px solid var(--hrms-border) !important;
+    box-shadow: var(--hrms-shadow) !important;
+    padding: 20px !important;
+    background: var(--hrms-card-bg) !important;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    min-height: 260px;
+}
+
+.hrms_emp_card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(91, 45, 142, 0.15) !important;
+}
+
+.hrms_emp_card_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.hrms_emp_img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--hrms-primary);
+}
+
+/* Status dot */
+.hrms_status_dot {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hrms_status_dot::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.hrms_status_present { color: var(--hrms-success); }
+.hrms_status_present::before { background: var(--hrms-success); }
+
+.hrms_status_absent { color: var(--hrms-danger); }
+.hrms_status_absent::before { background: var(--hrms-danger); }
+
+.hrms_status_on_leave { color: var(--hrms-info); }
+.hrms_status_on_leave::before { background: var(--hrms-info); }
+
+.hrms_status_half_day { color: var(--hrms-warning); }
+.hrms_status_half_day::before { background: var(--hrms-warning); }
+
+.hrms_emp_name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--hrms-text);
+    margin-bottom: 2px;
+}
+
+.hrms_emp_job {
+    font-size: 13px;
+    color: var(--hrms-text-light);
+    margin-bottom: 2px;
+}
+
+.hrms_emp_dept {
+    font-size: 12px;
+    color: var(--hrms-primary);
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.hrms_emp_footer {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--hrms-border);
+    padding-top: 10px;
+    margin-top: 8px;
+}
+
+.hrms_label {
+    display: block;
+    font-size: 10px;
+    color: var(--hrms-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hrms_value {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--hrms-text);
+}
+
+.hrms_emp_actions {
+    margin-top: 12px;
+    text-align: center;
+}
+
+/* ── Primary Button ──────────────────────────────────────────────────────── */
+.hrms_btn_primary {
+    background: var(--hrms-primary) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 6px 16px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    width: 100%;
+    text-align: center;
+}
+
+.hrms_btn_primary:hover {
+    background: var(--hrms-primary-dk) !important;
+}
+
+/* ── Attendance List Status Badges ──────────────────────────────────────── */
+.badge.hrms_badge_present  { background: var(--hrms-success) !important; color: #fff !important; }
+.badge.hrms_badge_absent   { background: var(--hrms-danger) !important;  color: #fff !important; }
+.badge.hrms_badge_half_day { background: var(--hrms-warning) !important; color: #fff !important; }
+.badge.hrms_badge_on_leave { background: var(--hrms-info) !important;    color: #fff !important; }
+
+/* ── Dashboard KPI Cards ─────────────────────────────────────────────────── */
+.hrms_kpi_card {
+    border-radius: var(--hrms-radius);
+    background: var(--hrms-card-bg);
+    border: 1px solid var(--hrms-border);
+    box-shadow: var(--hrms-shadow);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.hrms_kpi_card.purple {
+    background: var(--hrms-primary);
+    color: #fff;
+}
+
+.hrms_kpi_value {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--hrms-text);
+    line-height: 1;
+}
+
+.hrms_kpi_label {
+    font-size: 12px;
+    color: var(--hrms-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* ── Payroll net salary highlight ───────────────────────────────────────── */
+.hrms_net_salary_highlight .o_field_widget {
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    color: var(--hrms-primary) !important;
+}
+
+/* ── Leave status pill ───────────────────────────────────────────────────── */
+.hrms_leave_form .o_statusbar_status button.o_arrow_button.btn-primary {
+    background: var(--hrms-primary) !important;
+    border-color: var(--hrms-primary) !important;
+}
+
+/* ── Form sheet headers ──────────────────────────────────────────────────── */
+.hrms_employee_form .oe_title h1 {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--hrms-text);
+}
+
+.hrms_employee_form .oe_title h3 {
+    font-size: 16px;
+    color: var(--hrms-text-light);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .hrms_emp_card { min-height: unset; }
+    .hrms_emp_footer { flex-direction: column; gap: 6px; }
+}

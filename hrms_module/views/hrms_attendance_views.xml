@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── List View ──────────────────────────────────────────────────────── -->
+    <record id="view_hrms_attendance_list" model="ir.ui.view">
+        <field name="name">hrms.attendance.list</field>
+        <field name="model">hrms.attendance</field>
+        <field name="arch" type="xml">
+            <list string="Attendance Records"
+                  decoration-success="status == 'present'"
+                  decoration-warning="status == 'half_day'"
+                  decoration-danger="status == 'absent'"
+                  decoration-info="status == 'on_leave'">
+                <field name="employee_id"/>
+                <field name="date"/>
+                <field name="check_in" widget="datetime"/>
+                <field name="check_out" widget="datetime"/>
+                <field name="work_hours_display" string="Work Hours"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'present'"
+                       decoration-warning="status == 'half_day'"
+                       decoration-danger="status == 'absent'"
+                       decoration-info="status == 'on_leave'"/>
+                <button name="action_check_in" type="object" string="Check In"
+                        icon="fa-sign-in" class="btn-sm btn-primary"
+                        attrs="{'invisible': [('check_in', '!=', False)]}"/>
+                <button name="action_check_out" type="object" string="Check Out"
+                        icon="fa-sign-out" class="btn-sm btn-warning"
+                        attrs="{'invisible': ['|', ('check_in', '=', False), ('check_out', '!=', False)]}"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Form View ──────────────────────────────────────────────────────── -->
+    <record id="view_hrms_attendance_form" model="ir.ui.view">
+        <field name="name">hrms.attendance.form</field>
+        <field name="model">hrms.attendance</field>
+        <field name="arch" type="xml">
+            <form string="Attendance Record" class="hrms_attendance_form">
+                <header>
+                    <button name="action_check_in" type="object" string="Check In"
+                            class="btn-primary"
+                            attrs="{'invisible': [('check_in', '!=', False)]}"/>
+                    <button name="action_check_out" type="object" string="Check Out"
+                            class="btn-warning"
+                            attrs="{'invisible': ['|', ('check_in', '=', False), ('check_out', '!=', False)]}"/>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="present,half_day,absent,on_leave"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="display_name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Attendance Details">
+                            <field name="employee_id"/>
+                            <field name="date"/>
+                            <field name="check_in" widget="datetime"/>
+                            <field name="check_out" widget="datetime"/>
+                            <field name="work_hours_display" string="Work Hours" readonly="1"/>
+                        </group>
+                        <group string="Status">
+                            <field name="status" widget="radio"/>
+                            <field name="notes" widget="text"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Search View ────────────────────────────────────────────────────── -->
+    <record id="view_hrms_attendance_search" model="ir.ui.view">
+        <field name="name">hrms.attendance.search</field>
+        <field name="model">hrms.attendance</field>
+        <field name="arch" type="xml">
+            <search string="Search Attendance">
+                <field name="employee_id"/>
+                <field name="date"/>
+                <separator/>
+                <filter string="Today" name="today"
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="This Week" name="this_week"
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(days=context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="Present" name="present" domain="[('status', '=', 'present')]"/>
+                <filter string="Absent" name="absent" domain="[('status', '=', 'absent')]"/>
+                <filter string="Half-Day" name="half_day" domain="[('status', '=', 'half_day')]"/>
+                <filter string="On Leave" name="on_leave" domain="[('status', '=', 'on_leave')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Employee" name="grp_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Date" name="grp_date" context="{'group_by': 'date:day'}"/>
+                    <filter string="Status" name="grp_status" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Calendar View ─────────────────────────────────────────────────── -->
+    <record id="view_hrms_attendance_calendar" model="ir.ui.view">
+        <field name="name">hrms.attendance.calendar</field>
+        <field name="model">hrms.attendance</field>
+        <field name="arch" type="xml">
+            <calendar string="Attendance Calendar" date_start="date"
+                      color="status" mode="month" quick_create="0">
+                <field name="employee_id"/>
+                <field name="status"/>
+                <field name="work_hours_display"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- ── Action ─────────────────────────────────────────────────────────── -->
+    <record id="action_hrms_attendance" model="ir.actions.act_window">
+        <field name="name">Attendance Management</field>
+        <field name="res_model">hrms.attendance</field>
+        <field name="view_mode">list,form,calendar</field>
+        <field name="search_view_id" ref="view_hrms_attendance_search"/>
+        <field name="context">{'search_default_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No attendance records yet</p>
+            <p>Track employee check-ins and check-outs daily.</p>
+        </field>
+    </record>
+
+    <!-- Employee self-service attendance action -->
+    <record id="action_hrms_my_attendance" model="ir.actions.act_window">
+        <field name="name">My Attendance</field>
+        <field name="res_model">hrms.attendance</field>
+        <field name="view_mode">list,calendar,form</field>
+        <field name="domain">[('employee_id.user_id', '=', uid)]</field>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+
+</odoo>

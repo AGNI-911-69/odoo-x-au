@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data>
+
+    <!-- ── Demo Employees ────────────────────────────────────────────────── -->
+    <record id="demo_emp_sarah" model="hrms.employee">
+        <field name="name">Sarah Jenkins</field>
+        <field name="job_title">Senior Frontend Developer</field>
+        <field name="department">Product &amp; Engineering</field>
+        <field name="email">sarah.jenkins@hrms.demo</field>
+        <field name="phone">+1-555-0101</field>
+        <field name="role">hr</field>
+        <field name="status">present</field>
+        <field name="employment_type">full_time</field>
+        <field name="basic_salary">85000</field>
+        <field name="date_joined">2021-03-12</field>
+    </record>
+
+    <record id="demo_emp_michael" model="hrms.employee">
+        <field name="name">Michael Chen</field>
+        <field name="job_title">Operations Manager</field>
+        <field name="department">Global Operations</field>
+        <field name="email">michael.chen@hrms.demo</field>
+        <field name="phone">+1-555-0102</field>
+        <field name="role">employee</field>
+        <field name="status">absent</field>
+        <field name="employment_type">full_time</field>
+        <field name="basic_salary">72000</field>
+        <field name="date_joined">2019-11-05</field>
+    </record>
+
+    <record id="demo_emp_elena" model="hrms.employee">
+        <field name="name">Elena Rodriguez</field>
+        <field name="job_title">HR Specialist</field>
+        <field name="department">Human Resources</field>
+        <field name="email">elena.rodriguez@hrms.demo</field>
+        <field name="phone">+1-555-0103</field>
+        <field name="role">hr</field>
+        <field name="status">on_leave</field>
+        <field name="employment_type">full_time</field>
+        <field name="basic_salary">68000</field>
+        <field name="date_joined">2023-01-20</field>
+    </record>
+
+    <record id="demo_emp_david" model="hrms.employee">
+        <field name="name">David Wilson</field>
+        <field name="job_title">UX Designer</field>
+        <field name="department">Product &amp; Design</field>
+        <field name="email">david.wilson@hrms.demo</field>
+        <field name="phone">+1-555-0104</field>
+        <field name="role">employee</field>
+        <field name="status">present</field>
+        <field name="employment_type">full_time</field>
+        <field name="basic_salary">65000</field>
+        <field name="date_joined">2022-08-15</field>
+    </record>
+
+    <record id="demo_emp_patricia" model="hrms.employee">
+        <field name="name">Patricia Moore</field>
+        <field name="job_title">CFO</field>
+        <field name="department">Finance &amp; Accounting</field>
+        <field name="email">patricia.moore@hrms.demo</field>
+        <field name="phone">+1-555-0105</field>
+        <field name="role">admin</field>
+        <field name="status">present</field>
+        <field name="employment_type">full_time</field>
+        <field name="basic_salary">120000</field>
+        <field name="date_joined">2015-02-02</field>
+    </record>
+
+    <record id="demo_emp_jordan" model="hrms.employee">
+        <field name="name">Jordan Smith</field>
+        <field name="job_title">Data Analyst</field>
+        <field name="department">Business Intelligence</field>
+        <field name="email">jordan.smith@hrms.demo</field>
+        <field name="phone">+1-555-0106</field>
+        <field name="role">employee</field>
+        <field name="status">half_day</field>
+        <field name="employment_type">full_time</field>
+        <field name="basic_salary">62000</field>
+        <field name="date_joined">2021-09-30</field>
+    </record>
+
+    <record id="demo_emp_robert" model="hrms.employee">
+        <field name="name">Robert Wilson</field>
+        <field name="job_title">Project Manager</field>
+        <field name="department">PMO</field>
+        <field name="email">robert.wilson@hrms.demo</field>
+        <field name="phone">+1-555-0107</field>
+        <field name="role">employee</field>
+        <field name="status">present</field>
+        <field name="employment_type">contract</field>
+        <field name="basic_salary">78000</field>
+        <field name="date_joined">2020-06-01</field>
+    </record>
+
+    <!-- ── Demo Attendance Records ───────────────────────────────────────── -->
+    <record id="demo_att_sarah_today" model="hrms.attendance">
+        <field name="employee_id" ref="demo_emp_sarah"/>
+        <field name="date" eval="(DateTime.now()).strftime('%Y-%m-%d')"/>
+        <field name="check_in" eval="(DateTime.now()).replace(hour=8, minute=42, second=0)"/>
+        <field name="check_out" eval="(DateTime.now()).replace(hour=17, minute=15, second=0)"/>
+        <field name="status">present</field>
+    </record>
+
+    <record id="demo_att_michael_today" model="hrms.attendance">
+        <field name="employee_id" ref="demo_emp_michael"/>
+        <field name="date" eval="(DateTime.now()).strftime('%Y-%m-%d')"/>
+        <field name="check_in" eval="(DateTime.now()).replace(hour=9, minute=15, second=0)"/>
+        <field name="check_out" eval="(DateTime.now()).replace(hour=13, minute=0, second=0)"/>
+        <field name="status">half_day</field>
+    </record>
+
+    <record id="demo_att_elena_today" model="hrms.attendance">
+        <field name="employee_id" ref="demo_emp_elena"/>
+        <field name="date" eval="(DateTime.now()).strftime('%Y-%m-%d')"/>
+        <field name="status">on_leave</field>
+    </record>
+
+    <!-- ── Demo Leave Balances ────────────────────────────────────────────── -->
+    <record id="demo_bal_sarah_annual" model="hrms.leave.balance">
+        <field name="employee_id" ref="demo_emp_sarah"/>
+        <field name="leave_type_id" ref="hrms_module.leave_type_annual"/>
+        <field name="year" eval="DateTime.now().year"/>
+        <field name="allocated_days">18</field>
+    </record>
+
+    <record id="demo_bal_sarah_sick" model="hrms.leave.balance">
+        <field name="employee_id" ref="demo_emp_sarah"/>
+        <field name="leave_type_id" ref="hrms_module.leave_type_sick"/>
+        <field name="year" eval="DateTime.now().year"/>
+        <field name="allocated_days">7</field>
+    </record>
+
+    <record id="demo_bal_sarah_unpaid" model="hrms.leave.balance">
+        <field name="employee_id" ref="demo_emp_sarah"/>
+        <field name="leave_type_id" ref="hrms_module.leave_type_unpaid"/>
+        <field name="year" eval="DateTime.now().year"/>
+        <field name="allocated_days">3</field>
+    </record>
+
+    <record id="demo_bal_michael_annual" model="hrms.leave.balance">
+        <field name="employee_id" ref="demo_emp_michael"/>
+        <field name="leave_type_id" ref="hrms_module.leave_type_annual"/>
+        <field name="year" eval="DateTime.now().year"/>
+        <field name="allocated_days">18</field>
+    </record>
+
+    <!-- ── Demo Leave Requests ────────────────────────────────────────────── -->
+    <record id="demo_leave_michael_annual" model="hrms.leave">
+        <field name="employee_id" ref="demo_emp_michael"/>
+        <field name="leave_type_id" ref="hrms_module.leave_type_annual"/>
+        <field name="date_from" eval="(DateTime.now() + timedelta(days=5)).strftime('%Y-%m-%d')"/>
+        <field name="date_to" eval="(DateTime.now() + timedelta(days=9)).strftime('%Y-%m-%d')"/>
+        <field name="reason">Family vacation scheduled. All tasks for the Q4 launch are delegated and on track.</field>
+        <field name="state">pending</field>
+    </record>
+
+    <record id="demo_leave_elena_sick" model="hrms.leave">
+        <field name="employee_id" ref="demo_emp_elena"/>
+        <field name="leave_type_id" ref="hrms_module.leave_type_sick"/>
+        <field name="date_from" eval="(DateTime.now()).strftime('%Y-%m-%d')"/>
+        <field name="date_to" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d')"/>
+        <field name="reason">Sudden viral fever. Medical certificate will be uploaded upon return.</field>
+        <field name="state">pending</field>
+    </record>
+
+    <record id="demo_leave_robert_unpaid" model="hrms.leave">
+        <field name="employee_id" ref="demo_emp_robert"/>
+        <field name="leave_type_id" ref="hrms_module.leave_type_unpaid"/>
+        <field name="date_from" eval="(DateTime.now() + timedelta(days=12)).strftime('%Y-%m-%d')"/>
+        <field name="date_to" eval="(DateTime.now() + timedelta(days=13)).strftime('%Y-%m-%d')"/>
+        <field name="reason">Attending a personal certification seminar that overlaps with work hours.</field>
+        <field name="state">pending</field>
+    </record>
+
+    <!-- ── Demo Payroll Records ───────────────────────────────────────────── -->
+    <record id="demo_payroll_sarah_oct" model="hrms.payroll">
+        <field name="employee_id" ref="demo_emp_sarah"/>
+        <field name="month" eval="str(DateTime.now().month)"/>
+        <field name="year" eval="DateTime.now().year"/>
+        <field name="basic_salary">85000</field>
+        <field name="house_rent_allowance">8500</field>
+        <field name="transport_allowance">2000</field>
+        <field name="medical_allowance">1500</field>
+        <field name="tax_deduction">12000</field>
+        <field name="provident_fund">5000</field>
+        <field name="state">confirmed</field>
+    </record>
+
+    <record id="demo_payroll_michael_oct" model="hrms.payroll">
+        <field name="employee_id" ref="demo_emp_michael"/>
+        <field name="month" eval="str(DateTime.now().month)"/>
+        <field name="year" eval="DateTime.now().year"/>
+        <field name="basic_salary">72000</field>
+        <field name="house_rent_allowance">7200</field>
+        <field name="transport_allowance">1800</field>
+        <field name="medical_allowance">1200</field>
+        <field name="tax_deduction">9500</field>
+        <field name="provident_fund">4000</field>
+        <field name="state">draft</field>
+    </record>
+
+    <record id="demo_payroll_patricia_oct" model="hrms.payroll">
+        <field name="employee_id" ref="demo_emp_patricia"/>
+        <field name="month" eval="str(DateTime.now().month)"/>
+        <field name="year" eval="DateTime.now().year"/>
+        <field name="basic_salary">120000</field>
+        <field name="house_rent_allowance">15000</field>
+        <field name="transport_allowance">3000</field>
+        <field name="medical_allowance">2500</field>
+        <field name="tax_deduction">22000</field>
+        <field name="provident_fund">8000</field>
+        <field name="state">paid</field>
+        <field name="payment_date" eval="(DateTime.now() - timedelta(days=3)).strftime('%Y-%m-%d')"/>
+    </record>
+
+</data>
+</odoo>

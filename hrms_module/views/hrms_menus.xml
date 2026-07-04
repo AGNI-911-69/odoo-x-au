@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Root Menu ─────────────────────────────────────────────────────── -->
+    <menuitem id="menu_hrms_root"
+              name="Enterprise HRMS"
+              sequence="10"
+              web_icon="hrms_module,static/description/icon.png"/>
+
+    <!-- ── Dashboard ─────────────────────────────────────────────────────── -->
+    <menuitem id="menu_hrms_dashboard"
+              name="Dashboard"
+              parent="menu_hrms_root"
+              action="action_hrms_dashboard"
+              sequence="1"
+              groups="hrms_module.group_hrms_hr_officer"/>
+
+    <!-- ── Employees ─────────────────────────────────────────────────────── -->
+    <menuitem id="menu_hrms_employees"
+              name="Employees"
+              parent="menu_hrms_root"
+              sequence="2"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <menuitem id="menu_hrms_employee_list"
+              name="All Employees"
+              parent="menu_hrms_employees"
+              action="action_hrms_employee"
+              sequence="1"
+              groups="hrms_module.group_hrms_hr_officer"/>
+
+    <menuitem id="menu_hrms_my_profile"
+              name="My Profile"
+              parent="menu_hrms_employees"
+              action="action_hrms_employee"
+              sequence="2"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <!-- ── Attendance ────────────────────────────────────────────────────── -->
+    <menuitem id="menu_hrms_attendance"
+              name="Attendance"
+              parent="menu_hrms_root"
+              sequence="3"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <menuitem id="menu_hrms_attendance_all"
+              name="All Attendance"
+              parent="menu_hrms_attendance"
+              action="action_hrms_attendance"
+              sequence="1"
+              groups="hrms_module.group_hrms_hr_officer"/>
+
+    <menuitem id="menu_hrms_attendance_my"
+              name="My Attendance"
+              parent="menu_hrms_attendance"
+              action="action_hrms_my_attendance"
+              sequence="2"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <!-- ── Leave / Time-Off ──────────────────────────────────────────────── -->
+    <menuitem id="menu_hrms_leave"
+              name="Leave / Time-Off"
+              parent="menu_hrms_root"
+              sequence="4"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <menuitem id="menu_hrms_leave_all"
+              name="All Requests"
+              parent="menu_hrms_leave"
+              action="action_hrms_leave"
+              sequence="1"
+              groups="hrms_module.group_hrms_hr_officer"/>
+
+    <menuitem id="menu_hrms_leave_pending"
+              name="Pending Approvals"
+              parent="menu_hrms_leave"
+              action="action_hrms_leave_pending"
+              sequence="2"
+              groups="hrms_module.group_hrms_hr_officer"/>
+
+    <menuitem id="menu_hrms_leave_my"
+              name="My Leaves"
+              parent="menu_hrms_leave"
+              action="action_hrms_my_leave"
+              sequence="3"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <menuitem id="menu_hrms_leave_balance"
+              name="Leave Balances"
+              parent="menu_hrms_leave"
+              action="action_hrms_leave_balance"
+              sequence="4"
+              groups="hrms_module.group_hrms_hr_officer"/>
+
+    <!-- ── Payroll ───────────────────────────────────────────────────────── -->
+    <menuitem id="menu_hrms_payroll"
+              name="Payroll"
+              parent="menu_hrms_root"
+              sequence="5"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <menuitem id="menu_hrms_payroll_all"
+              name="All Payroll"
+              parent="menu_hrms_payroll"
+              action="action_hrms_payroll"
+              sequence="1"
+              groups="hrms_module.group_hrms_hr_officer"/>
+
+    <menuitem id="menu_hrms_payroll_my"
+              name="My Payroll"
+              parent="menu_hrms_payroll"
+              action="action_hrms_my_payroll"
+              sequence="2"
+              groups="hrms_module.group_hrms_employee"/>
+
+    <!-- ── Configuration (Admin only) ───────────────────────────────────── -->
+    <menuitem id="menu_hrms_config"
+              name="Configuration"
+              parent="menu_hrms_root"
+              sequence="10"
+              groups="hrms_module.group_hrms_admin"/>
+
+    <menuitem id="menu_hrms_leave_types"
+              name="Leave Types"
+              parent="menu_hrms_config"
+              action="action_hrms_leave_type"
+              sequence="1"
+              groups="hrms_module.group_hrms_admin"/>
+
+</odoo>
