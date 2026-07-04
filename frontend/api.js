@@ -2,7 +2,7 @@
    HRMS API Client — JWT auth, real backend, zero hardcoded data
    ================================================================ */
 
-const BASE = window.HRMS_API_URL || 'http://localhost:3000/api';
+const BASE = (typeof window !== 'undefined' && window.HRMS_API_URL) ? window.HRMS_API_URL : 'http://localhost:3000/api';
 
 // ── Auth ──────────────────────────────────────────────────────
 export const Auth = {
@@ -120,6 +120,18 @@ export function toast(msg, type = 'success') {
   t.className = `toast ${type} show`;
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Global API error banner (shown when backend is down) ──────
+export function showApiError(msg) {
+  let b = document.getElementById('globalApiError');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'globalApiError';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:#7f1d1d;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between';
+    document.body.appendChild(b);
+  }
+  b.innerHTML = `<span>⚠ API Error: ${msg}</span><button onclick="location.reload()" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px">Retry</button>`;
 }
 
 // ── SVG Icon Library ──────────────────────────────────────────

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <title>Dashboard — Odoo HRMS</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
@@ -16,8 +17,14 @@
       <div class="page-header">
         <div>
           <h1>Dashboard Overview</h1>
-          <p id="welcomeSub">Loading…</p>
+          <p id="welcomeSub"></p>
         </div>
+      </div>
+
+      <div id="apiErr" style="display:none;background:var(--danger-lt);border:1px solid var(--danger);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;color:#7f1d1d;font-size:14px">
+        <strong>Could not load dashboard data.</strong>
+        <span id="apiErrMsg"></span>
+        <button onclick="retryAll()" style="margin-left:12px;background:var(--danger);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer">Retry</button>
       </div>
 
       <!-- KPI Cards -->
@@ -28,10 +35,8 @@
         <div class="kpi-card skeleton" style="height:130px"></div>
       </div>
 
-      <!-- Two-column: pending leaves + activity -->
+      <!-- Two-col -->
       <div class="dash-grid">
-
-        <!-- Pending Leave Approvals -->
         <div class="card">
           <div class="panel-header">
             <div>
@@ -42,96 +47,89 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Type</th>
-                  <th>Dates</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="leaveTable">
-                <tr><td colspan="4" class="loading-row">Loading…</td></tr>
-              </tbody>
+              <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Actions</th></tr></thead>
+              <tbody id="leaveTable"><tr><td colspan="4" class="loading-row">Loading…</td></tr></tbody>
             </table>
           </div>
         </div>
 
-        <!-- Recent Activity -->
         <div class="card">
-          <div class="panel-header">
-            <div class="panel-title">Recent Activity</div>
-          </div>
-          <div class="activity-list" id="activityList">
-            <div class="loading-row">Loading…</div>
-          </div>
+          <div class="panel-header"><div class="panel-title">Recent Activity</div></div>
+          <div class="activity-list" id="activityList"><div class="loading-row">Loading…</div></div>
           <div style="margin-top:20px">
-            <button class="btn btn-outline" style="width:100%;justify-content:center" onclick="window.location.href='leave.html'">
-              View Full Audit Log
-            </button>
+            <button class="btn btn-outline" style="width:100%;justify-content:center" onclick="window.location.href='leave.html'">View Full Audit Log</button>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- config FIRST so BASE url is available before api.js module runs -->
 <script src="config.js"></script>
 <script type="module">
 import { Auth, get, post, badge, avatar, timeAgo, toast, icons, renderSidebar, renderTopbar } from './api.js';
 
-Auth.requireLogin();
-if (!Auth.isHR()) window.location.href = 'employees.html';
+// ── Guard ──────────────────────────────────────────────────────
+if (!Auth.token()) { window.location.href = 'index.html'; }
+if (!Auth.isHR())  { window.location.href = 'employees.html'; }
 
+// ── Render shell ───────────────────────────────────────────────
 document.getElementById('sidebar').innerHTML = renderSidebar('dashboard');
 document.getElementById('topbar').innerHTML  = renderTopbar();
 
 const user = Auth.user();
 document.getElementById('welcomeSub').textContent =
-  `Welcome back, ${user.name.split(' ')[0]}. Here is what's happening today in the organization.`;
+  `Welcome back, ${(user?.name || 'User').split(' ')[0]}. Here is what's happening today.`;
 
+// ── Icon maps ──────────────────────────────────────────────────
 const ACT_ICONS = { employee:'employees', payroll:'money', system:'settings', leave:'leave' };
-const ACT_CLS   = { employee:'purple',    payroll:'green',  system:'gray',    leave:'blue' };
+const ACT_CLS   = { employee:'purple', payroll:'green', system:'gray', leave:'blue' };
 
+function showErr(msg) {
+  document.getElementById('apiErrMsg').textContent = ' ' + msg;
+  document.getElementById('apiErr').style.display = 'block';
+}
+
+// ── Load stats ─────────────────────────────────────────────────
 async function loadStats() {
   try {
     const s = await get('/stats');
+    if (!s) return;
+    document.getElementById('apiErr').style.display = 'none';
     document.getElementById('kpiGrid').innerHTML = `
       <div class="kpi-card">
         <div class="kpi-icon-wrap green">${icons.employees}</div>
         <div class="kpi-label">Total Employees</div>
-        <div class="kpi-value">${s.totalEmp.toLocaleString()}</div>
-        <div class="kpi-sub up">${icons.trending} Active workforce</div>
+        <div class="kpi-value">${(s.totalEmp || 0).toLocaleString()}</div>
+        <div class="kpi-sub up">Active workforce</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon-wrap blue">${icons.attendance}</div>
         <div class="kpi-label">Present Today</div>
-        <div class="kpi-value">${(s.present + s.halfday).toLocaleString()}</div>
+        <div class="kpi-value">${((s.present||0) + (s.halfday||0)).toLocaleString()}</div>
         <div class="kpi-sub">${s.totalEmp > 0 ? Math.round(((s.present+s.halfday)/s.totalEmp)*100) : 0}% rate</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon-wrap yellow">${icons.leave}</div>
         <div class="kpi-label">Pending Requests</div>
-        <div class="kpi-value">${s.pendingLeaves}</div>
-        ${s.pendingLeaves > 0
-          ? `<div class="kpi-sub warn">Action Required</div>`
-          : `<div class="kpi-sub up">All clear</div>`}
+        <div class="kpi-value">${s.pendingLeaves || 0}</div>
+        ${s.pendingLeaves > 0 ? '<div class="kpi-sub warn">Action Required</div>' : '<div class="kpi-sub up">All clear</div>'}
       </div>
       <div class="kpi-card purple">
         <div class="kpi-icon-wrap purple">${icons.calendar}</div>
         <div class="kpi-label">On Leave Today</div>
-        <div class="kpi-value">${s.onLeave}</div>
-        <div class="kpi-sub">Absent: ${s.absent}</div>
+        <div class="kpi-value">${s.onLeave || 0}</div>
+        <div class="kpi-sub">Absent: ${s.absent || 0}</div>
       </div>`;
 
-    document.getElementById('activityList').innerHTML = s.activity.length
-      ? s.activity.map(a => {
+    const acts = s.activity || [];
+    document.getElementById('activityList').innerHTML = acts.length
+      ? acts.map(a => {
           const cat = a.category || 'system';
-          const ic  = icons[ACT_ICONS[cat] || 'settings'];
-          const cls = ACT_CLS[cat] || 'gray';
           return `<div class="activity-item">
-            <div class="activity-icon-wrap ${cls}">${ic}</div>
+            <div class="activity-icon-wrap ${ACT_CLS[cat]||'gray'}">${icons[ACT_ICONS[cat]||'settings']}</div>
             <div>
               <div class="activity-text">${a.text}</div>
               <div class="activity-desc">${a.description}</div>
@@ -139,35 +137,43 @@ async function loadStats() {
             </div>
           </div>`;
         }).join('')
-      : `<div class="loading-row">No activity yet.</div>`;
-  } catch(e) { console.error(e); }
+      : '<div class="loading-row">No activity yet.</div>';
+
+  } catch(e) {
+    showErr(e.message);
+    document.getElementById('kpiGrid').innerHTML = `
+      <div class="kpi-card" style="grid-column:1/-1;text-align:center;color:var(--text-sm);padding:32px">
+        Could not load stats — <a href="#" onclick="retryAll();return false;" style="color:var(--primary);font-weight:600">click to retry</a>
+      </div>`;
+  }
 }
 
+// ── Load pending leaves ────────────────────────────────────────
 async function loadPendingLeaves() {
   try {
     const leaves = await get('/leaves?status=pending');
+    if (!leaves) return;
     document.getElementById('leaveTable').innerHTML = leaves.length
       ? leaves.map(l => `
           <tr>
             <td><div class="emp-cell">
               ${avatar(l.emp_name, l.emp_color)}
-              <div><div class="emp-name">${l.emp_name}</div><div class="emp-sub">${l.emp_job}</div></div>
+              <div><div class="emp-name">${l.emp_name}</div><div class="emp-sub">${l.emp_job||''}</div></div>
             </div></td>
             <td>${badge(l.leave_type, l.type_name)}</td>
-            <td style="font-size:13px">
-              ${l.date_from} – ${l.date_to}
+            <td style="font-size:13px">${l.date_from} – ${l.date_to}
               <div style="color:var(--text-sm);font-size:12px">${l.days} day${l.days>1?'s':''}</div>
             </td>
-            <td>
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-sm btn-danger"  style="padding:5px 10px" onclick="rejectLeave(${l.id})">${icons.x}</button>
-                <button class="btn btn-sm btn-success" style="padding:5px 10px" onclick="approveLeave(${l.id})">${icons.check}</button>
-              </div>
-            </td>
-          </tr>`)
-        .join('')
+            <td><div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-danger"  style="padding:5px 10px" onclick="rejectLeave(${l.id})">${icons.x}</button>
+              <button class="btn btn-sm btn-success" style="padding:5px 10px" onclick="approveLeave(${l.id})">${icons.check}</button>
+            </div></td>
+          </tr>`).join('')
       : `<tr><td colspan="4" class="loading-row">No pending requests</td></tr>`;
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    document.getElementById('leaveTable').innerHTML =
+      `<tr><td colspan="4" class="loading-row" style="color:var(--danger)">${e.message}</td></tr>`;
+  }
 }
 
 window.approveLeave = async (id) => {
@@ -178,6 +184,8 @@ window.rejectLeave = async (id) => {
   try { await post(`/leaves/${id}/reject`, { reason:'' }); toast('Leave rejected', 'danger'); loadPendingLeaves(); loadStats(); }
   catch(e) { toast(e.message, 'danger'); }
 };
+
+window.retryAll = () => { loadStats(); loadPendingLeaves(); };
 
 loadStats();
 loadPendingLeaves();
