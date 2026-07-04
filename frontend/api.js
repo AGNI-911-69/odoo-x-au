@@ -282,7 +282,6 @@ window.toggleUserMenu = function() {
     }, { once: true }), 50);
   }
 };
-}
 
 // ── Mobile sidebar toggle ─────────────────────────────────────
 function initMobileNav() {
