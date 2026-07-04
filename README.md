@@ -1,69 +1,107 @@
-# Enterprise HRMS — Odoo 17 Custom Module
+# Enterprise HRMS — Odoo Hackathon 2026
 
 > **Every workday, perfectly aligned.**
 
-A production-ready Human Resource Management System built as a custom Odoo 17 module for the AU Hackathon.
+A full-stack Human Resource Management System with a real SQLite database, REST API, and role-based frontend.
 
-## Features
+---
 
-| Module | Description |
-|---|---|
-| **Authentication & Roles** | Admin/HR Officer vs Employee, record-level security rules |
-| **Employee Profiles** | Kanban + list + form views, profile image, documents tab |
-| **Attendance Management** | Check-in/check-out, daily/weekly views, auto work-hours calculation |
-| **Leave & Time-Off** | Calendar picker, approval workflow, leave balance tracking |
-| **Payroll** | Salary components, deductions, net pay, draft → confirmed → paid workflow |
-| **Dashboard** | Live KPIs, pending leave approvals, recent activity |
+## Quick Start
 
-## Installation
+**Double-click `start.bat`** — it starts both servers and opens the browser.
 
-1. Copy `hrms_module/` into your Odoo `addons` folder.
-2. Restart Odoo server.
-3. Go to **Apps** → search `Enterprise HRMS` → **Install**.
-4. Assign users to the HRMS groups:
-   - `Enterprise HRMS / Employee`
-   - `Enterprise HRMS / HR Officer`
-   - `Enterprise HRMS / Administrator`
+Or manually:
 
-## Module Structure
+```bash
+# Terminal 1: API server
+cd D:\ODOO\backend
+npm install        # first time only
+node server.js     # runs on http://localhost:3000
 
+# Terminal 2: Frontend
+cd D:\ODOO\frontend
+python -m http.server 8080   # runs on http://localhost:8080
 ```
-hrms_module/
-├── __manifest__.py
-├── __init__.py
-├── models/
-│   ├── hrms_employee.py       # Employee profiles + documents
-│   ├── hrms_attendance.py     # Attendance + check-in/out logic
-│   ├── hrms_leave.py          # Leave types, balances, requests
-│   └── hrms_payroll.py        # Payroll records + workflow
-├── wizards/
-│   └── hrms_leave_wizard.py   # Approve/reject wizard
-├── views/
-│   ├── hrms_employee_views.xml
-│   ├── hrms_attendance_views.xml
-│   ├── hrms_leave_views.xml
-│   ├── hrms_payroll_views.xml
-│   ├── hrms_dashboard_views.xml
-│   └── hrms_menus.xml
-├── security/
-│   ├── hrms_security.xml      # Groups + record rules
-│   └── ir.model.access.csv    # Model access rights
-├── data/
-│   └── hrms_sequence.xml      # Employee ID sequence + leave types
-├── demo/
-│   └── hrms_demo.xml          # Sample employees, attendance, leaves, payroll
-└── static/
-    └── src/css/hrms_style.css # Custom purple/teal UI theme
-```
+
+Then open **http://localhost:8080**
+
+---
+
+## First-Time Setup
+
+On first run, register your Admin account at the login page → "Register here".
+
+No demo data. All data is created by real users.
+
+---
 
 ## Tech Stack
 
-- Odoo 17 (Community / Enterprise)
-- Python 3.10+
-- PostgreSQL (via Odoo ORM — no raw SQL)
-- XML views, QWeb kanban templates
-- Custom CSS (no external dependencies)
+| Layer | Technology |
+|---|---|
+| Frontend | Vanilla HTML5 + ES Modules + CSS3 |
+| API | Node.js 24 + Express 4 |
+| Database | SQLite via better-sqlite3 |
+| Auth | JWT + bcrypt |
 
-## Team
+---
 
-Built for the Odoo × AU Hackathon 2026.
+## Architecture
+
+```
+D:\ODOO\
+├── start.bat               ← double-click to start everything
+│
+├── backend/
+│   ├── server.js           ← REST API (Express)
+│   ├── db.js               ← SQLite schema + connection
+│   ├── seed.js             ← first-time admin setup wizard
+│   └── package.json
+│
+├── frontend/
+│   ├── api.js              ← central API client (no hardcoded data)
+│   ├── index.html          ← login + register
+│   ├── dashboard.html      ← HR dashboard (live KPIs)
+│   ├── employees.html      ← employee kanban + add/view
+│   ├── attendance.html     ← check-in/out + weekly chart
+│   ├── leave.html          ← calendar picker + approvals
+│   ├── payroll.html        ← salary records + workflow
+│   └── style.css
+│
+└── hrms_module/            ← Odoo 17 custom module
+    ├── models/             ← Python ORM models
+    ├── views/              ← XML views
+    ├── security/           ← access rights + record rules
+    └── ...
+```
+
+---
+
+## API Endpoints
+
+| Method | Path | Access |
+|---|---|---|
+| POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public |
+| GET  | `/api/auth/me` | Authenticated |
+| GET/POST | `/api/employees` | Auth (HR=all, Emp=own) |
+| GET/POST | `/api/attendance` | Auth |
+| POST | `/api/attendance/checkin` | Auth |
+| POST | `/api/attendance/checkout` | Auth |
+| GET/POST | `/api/leaves` | Auth |
+| POST | `/api/leaves/:id/approve` | HR only |
+| POST | `/api/leaves/:id/reject` | HR only |
+| GET/POST | `/api/payroll` | Auth (HR=all, Emp=own) |
+| POST | `/api/payroll/:id/confirm` | HR only |
+| POST | `/api/payroll/:id/markpaid` | HR only |
+| GET  | `/api/stats` | Auth |
+
+---
+
+## User Roles
+
+| Role | Access |
+|---|---|
+| **Admin** | Full access, can delete employees |
+| **HR Officer** | Manage employees, approve leaves, manage payroll |
+| **Employee** | View own profile, own attendance, apply leave, view own payroll |
