@@ -30,35 +30,48 @@
 
         <!-- Left: Calendar + Form + History -->
         <div>
-          <div class="calendar-wrap">
-            <div class="cal-header">
-              <div class="cal-header-title">New Leave Request</div>
-              <div class="cal-nav-btns">
-                <button class="cal-nav" onclick="changeMonth(-1)">&#8249;</button>
-                <span class="cal-month-label" id="calTitle"></span>
-                <button class="cal-nav" onclick="changeMonth(1)">&#8250;</button>
-              </div>
-            </div>
-            <div class="cal-grid" id="calDayNames"></div>
-            <div class="cal-grid" id="calDays"></div>
-
-            <div class="leave-form-section">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-                <div style="grid-column:1/-1">
-                  <label>Leave Type</label>
-                  <select id="leaveType" class="form-select"></select>
-                </div>
-                <div><label>From</label><input type="date" id="leaveFrom" class="form-control" onchange="syncCalendar()"/></div>
-                <div><label>To</label><input type="date" id="leaveTo" class="form-control" onchange="syncCalendar()"/></div>
-              </div>
+          <div class="card" style="padding:20px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+              <!-- Calendar -->
               <div>
-                <label>Reason / Remarks</label>
-                <textarea id="leaveReason" class="form-control" placeholder="Describe the reason for leave…"></textarea>
+                <div class="cal-header">
+                  <div class="cal-header-title">New Leave Request</div>
+                  <div class="cal-nav-btns">
+                    <button class="cal-nav" onclick="changeMonth(-1)">&#8249;</button>
+                    <span class="cal-month-label" id="calTitle"></span>
+                    <button class="cal-nav" onclick="changeMonth(1)">&#8250;</button>
+                  </div>
+                </div>
+                <div class="cal-grid" id="calDayNames"></div>
+                <div class="cal-grid" id="calDays"></div>
               </div>
-              <div id="leaveErr" class="form-err"></div>
-              <div class="leave-form-actions">
-                <button class="btn btn-primary" id="submitBtn" onclick="submitLeave()">Submit Request</button>
-                <button class="btn btn-outline" onclick="clearForm()">Cancel</button>
+
+              <!-- Form fields -->
+              <div>
+                <div class="leave-form-section" style="margin-top:0;border-top:none;padding-top:0">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sm);margin-bottom:6px">Leave Type</div>
+                  <select id="leaveType" class="form-select" style="margin-bottom:14px"></select>
+
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                    <div>
+                      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sm);margin-bottom:6px">From</div>
+                      <input type="date" id="leaveFrom" class="form-control" onchange="syncCalendar()"/>
+                    </div>
+                    <div>
+                      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sm);margin-bottom:6px">To</div>
+                      <input type="date" id="leaveTo" class="form-control" onchange="syncCalendar()"/>
+                    </div>
+                  </div>
+
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sm);margin-bottom:6px">Reason / Remarks</div>
+                  <textarea id="leaveReason" class="form-control" placeholder="Describe the reason for leave…" style="min-height:80px"></textarea>
+
+                  <div id="leaveErr" class="form-err" style="margin-top:8px"></div>
+                  <div class="leave-form-actions" style="margin-top:14px">
+                    <button class="btn btn-primary" id="submitBtn" onclick="submitLeave()" style="flex:1;justify-content:center">Submit Request</button>
+                    <button class="btn btn-outline" onclick="clearForm()">Cancel</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
